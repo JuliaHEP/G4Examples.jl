@@ -9,11 +9,19 @@ The examples are organised in 3 sections following more or less the organisation
 This is most basic example using a more Geant4 native interface. It is creating a geometry with two volumes and standard physcis.
 - **B1.jl** - julia script to run the example. Detector description in a separate file `DetectorB1.jl`
 - **B1.ipynb** - the same example in a Jupyter notebook format
+
 ### B2/B2a
 Basic example of a calorimeter detector using a sensitive detector to collect 'hits'. 
 - **B2a.jl** - julia script to run the example. Detector description in a separate file `DetectorB2a.jl`
 - **B2aVis.jl** - B2a detector with visualisation
 - **B2a.ipynb** - the same example in a Jupyter notebook format
+
+## B3/B3a
+The example simulates schematically a Positron Emitted Tomography system. It uses a custom primary particle generator, a custom physics list and makes use of two sensitive detectors.
+- **B3a.jl** -  julia script to run the example. Detector description in a separate file `DetectorB3.jl`
+- **B3b.jl** - Same with different user actions
+- **B3a.ipynb** - the same example in a Jupyter notebook format, with some more detailed explanations 
+
 ## Extended
 
 ### Solids

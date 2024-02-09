@@ -1,8 +1,7 @@
 using Geant4
-using Geant4.SystemOfUnits
+using Geant4.SystemOfUnits: cm, cm3, mm, pGy, eplus, keV, g
 using Printf, GeometryBasics
-using FHist
-using Plots
+using Statistics
 
 #---Define Detector Parameters struct--------------------------------------------------------------
 include(joinpath(@__DIR__, "DetectorB3.jl"))
@@ -34,6 +33,7 @@ function GeneratorB3b(;kwargs...)
     function _init(data::GeneratorB3bData, ::Any)
         gun = data.gun = move!(G4ParticleGun())
         SetParticleMomentumDirection(gun, G4ThreeVector(1,0,0))
+        SetParticleEnergy(gun, 1eV)
     end
     function _gen(evt::G4Event, data::GeneratorB3bData)::Nothing
         if isnothing(data.ion)  # late initialize (after physics processes)
@@ -55,13 +55,11 @@ end
 @with_kw mutable struct SimDataB3b <: G4JLSimulationData
     #---Run data
     goodEvents = zero(Int64)
-    sumDose = zero(Float64)
-    distDose = H1D("Dose per Event Distribution", 50, 0.0766, 0.07675, :pGy)
+    doses = Float64[]
 end
 function add!(x::SimDataB3b, y::SimDataB3b)
     x.goodEvents += y.goodEvents
-    x.sumDose += y.sumDose
-    x.merge!(x.distDose, y.distDose)
+    append!(x.doses, y.doses)
 end
 
 #---Sensitive Detector Crystal---------------------------------------------------------------------
@@ -111,11 +109,10 @@ patientSD = G4JLSensitiveDetector("PatientSD", PatientData();           # SD nam
 function beginrun(run::G4Run, app::G4JLApplication)::Nothing
     data = getSIMdata(app)
     data.goodEvents = 0
-    data.sumDose = 0.
-    empty!(data.distDose)
+    empty!(data.doses)
     nothing
 end
-μGy = Geant4.SystemOfUnits.gray/1e6
+
 function endrun(run::G4Run, app::G4JLApplication)::Nothing
     partName = app.generator.data.gun |> GetParticleDefinition |> GetParticleName |> String
     #---end run action is called for each workwer thread and the master one
@@ -129,7 +126,8 @@ function endrun(run::G4Run, app::G4JLApplication)::Nothing
         G4JL_println("""
                      --------------------End of Run------------------------------
                       The run was $noEvents $partName Nb of 'good' e+ annihilations: $(data.goodEvents)
-                      Total dose in patient : $(data.sumDose/μGy) μGy
+                      Total dose in patient: $(sum(data.doses)/pGy) pGy
+                            dose in patient: $(mean(data.doses)/pGy) [error: $(std(data.doses)/pGy) min: $(minimum(data.doses)/pGy) max: $(maximum(data.doses)/pGy) median: $(median(data.doses)/pGy)] pGy
                      ------------------------------------------------------------ 
                      """)
     end
@@ -142,8 +140,7 @@ function endevent(evt::G4Event, app::G4JLApplication)
     if count(>(500keV), values(edep)) == 2
         data.goodEvents += 1
     end
-    data.sumDose += dose
-    push!(data.distDose, dose)
+    push!(data.doses, dose)
     return
 end
 #---Stacking Action
@@ -178,7 +175,4 @@ configure(app)
 initialize(app)
 
 beamOn(app, 10000)
-h = app.simdata[1].distDose
-plot(h.hist, title=h.title, xlabel=string(h.unit))
-
 

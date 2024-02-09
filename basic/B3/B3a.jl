@@ -1,7 +1,6 @@
 using Geant4
-using Geant4.SystemOfUnits
-using Printf, GeometryBasics
-using GLMakie, Rotations, IGLWrap_jll  # to force loding G4Vis extension
+using Geant4.SystemOfUnits:  cm, cm3, mm, pGy, eplus, keV, g, eV
+#using GLMakie, Rotations, IGLWrap_jll  # to force loding G4Vis extension
 
 #---Define Detector Parameters struct--------------------------------------------------------------
 include(joinpath(@__DIR__, "DetectorB3.jl"))
@@ -33,6 +32,7 @@ function GeneratorB3a(;kwargs...)
     function _init(data::GeneratorB3aData, ::Any)
         gun = data.gun = move!(G4ParticleGun())
         SetParticleMomentumDirection(gun, G4ThreeVector(1,0,0))
+        SetParticleEnergy(gun, 1eV)
     end
     function _gen(evt::G4Event, data::GeneratorB3aData)::Nothing
         if isnothing(data.ion)  # late initialize (after physics processes)
@@ -93,7 +93,7 @@ function p_initialize(::G4HCofThisEvent, data::PatientData)::Nothing
 end
 function p_processHits(step::G4Step, ::G4TouchableHistory, data::PatientData)::Bool
     edep = step |> GetTotalEnergyDeposit
-    edep <  0. && return false
+    edep <=  0. && return false
     volume  = step |> GetPreStepPoint |> GetTouchable |> GetSolid |> GetCubicVolume
     density = step |> GetPreStepPoint |> GetMaterial |> GetDensity
     data.dose += edep /(density * volume)
@@ -126,7 +126,7 @@ function endrun(run::G4Run, app::G4JLApplication)::Nothing
         G4JL_println("""
                      --------------------End of Run------------------------------
                       The run was $noEvents $partName Nb of 'good' e+ annihilations: $(data.goodEvents)
-                      Total dose in patient : $(data.sumDose/μGy) μGy
+                      Total dose in patient : $(data.sumDose/pGy) pGy
                      ------------------------------------------------------------ 
                      """)
     end
@@ -173,4 +173,6 @@ app = G4JLApplication(; detector = DetectorB3(),                      # detector
 configure(app)
 initialize(app)
 beamOn(app, 10000)
+
+#ui`/tracking/verbose 0`
 
