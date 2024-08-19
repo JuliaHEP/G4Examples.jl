@@ -26,7 +26,7 @@ mutable struct TestEm3SimData <: G4JLSimulationData
 
     fEdepEventHistos::Vector{Hist1D}
     fTrackLengthChHistos::Vector{Hist1D}
-    fEdepHistos::Vector{Hist1D{Float64, Tuple{StepRange{Int64, Int64}}}}
+    fEdepHistos::Vector{Hist1D{Float64}}
     fAbsorLabel::Vector{String}
 
     fTimer::Float64
@@ -146,9 +146,9 @@ function beginrun(run::G4Run, app::G4JLApplication)::Nothing
     # init arrays
     data.fEnergyDeposit = zeros(fNbOfAbsor)
     data.fTrackLengthCh = zeros(fNbOfAbsor)
-    data.fEdepHistos = [Hist1D(; bins=0:1:fNbOfLayers) for i in 1:fNbOfAbsor]
-    data.fEdepEventHistos = [Hist1D(;bins=0:10:1000) for i in 1:fNbOfAbsor]
-    data.fTrackLengthChHistos = [Hist1D(;bins=0:20:2000) for i in 1:fNbOfAbsor]
+    data.fEdepHistos = [Hist1D(;counttype=Float64,binedges=0.:1.0:fNbOfLayers) for i in 1:fNbOfAbsor]
+    data.fEdepEventHistos = [Hist1D(;binedges=0:10:1000) for i in 1:fNbOfAbsor]
+    data.fTrackLengthChHistos = [Hist1D(;binedges=0:20:2000) for i in 1:fNbOfAbsor]
     data.fAbsorLabel = ["$(fAbsorThickness[i])mm of $(fAbsorMaterial[i])" for i in 1:fNbOfAbsor]
     nothing
 end

@@ -84,9 +84,9 @@ silicon_SD = G4JLSensitiveDetector("Silicon_SD", SiSDData();               # SD 
 function beginrun(run::G4Run, app::G4JLApplication)::Nothing
     data = getSIMdata(app)
     # init histos
-    data.scintPhotonsHisto = Hist1D(;bins=2.:0.5:50.)
-    data.siHitsHisto = Hist1D(;bins=20.:20.:2000.)
-    data.crysEdepHisto = Hist1D(;bins=28.:0.05:32.)
+    data.scintPhotonsHisto = Hist1D(;binedges=2.:0.5:50.)
+    data.siHitsHisto = Hist1D(;binedges=20.:20.:2000.)
+    data.crysEdepHisto = Hist1D(;binedges=28.:0.05:32.)
     nothing
 end
 #---End Run Action---------------------------------------------------------------------------------
