@@ -6,7 +6,7 @@ using FHist, Printf, Plots
 include(joinpath(@__DIR__, "DetectorTestEm3.jl"))
 
 #---Define Simulation Data struct------------------------------------------------------------------
-const Hist1D64 = Hist1D{Float64, Tuple{StepRangeLen{Float64, Base.TwicePrecision{Float64}, Base.TwicePrecision{Float64}, Int64}}}
+const Hist1D64 = Hist1D{Float64}
 mutable struct TestEm3SimData <: G4JLSimulationData
     #---Run data-----------------------------------------------------------------------------------
     fParticle::CxxPtr{G4ParticleDefinition}
@@ -157,9 +157,9 @@ function beginrun(run::G4Run, app::G4JLApplication)::Nothing
     # init arrays
     data.fEnergyDeposit = zeros(fNbOfAbsor)
     data.fTrackLengthCh = zeros(fNbOfAbsor)
-    data.fEdepHistos = [Hist1D(Float64; bins=0.:1.0:fNbOfLayers) for i in 1:fNbOfAbsor]
-    data.fEdepEventHistos = [Hist1D(;bins=0.:10.:1000.) for i in 1:fNbOfAbsor]
-    data.fTrackLengthChHistos = [Hist1D(;bins=0.:20.:2000.) for i in 1:fNbOfAbsor]
+    data.fEdepHistos = [Hist1D(;counttype=Float64,binedges=0.:1.0:fNbOfLayers) for i in 1:fNbOfAbsor]
+    data.fEdepEventHistos = [Hist1D(;binedges=0.:10.:1000.) for i in 1:fNbOfAbsor]
+    data.fTrackLengthChHistos = [Hist1D(;binedges=0.:20.:2000.) for i in 1:fNbOfAbsor]
     data.fAbsorLabel = ["$(fAbsorThickness[i])mm of $(fAbsorMaterial[i] |> GetName |> String)" for i in 1:fNbOfAbsor]
     nothing
 end

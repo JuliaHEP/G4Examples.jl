@@ -35,7 +35,7 @@ particlegun = G4JLGunGenerator(particle = "gamma",
                                position = G4ThreeVector(0, 0, 2cm))
 
 #---Simulation Data-------------(normally filled by actions)---------------------------------------
-const Hist1D64 = Hist1D{Float64, Tuple{StepRangeLen{Float64, Base.TwicePrecision{Float64}, Base.TwicePrecision{Float64}, Int64}}}
+const Hist1D64 = Hist1D{Float64}
 mutable struct ScintSimData <: G4JLSimulationData
     scintPhotonsPerEvent::Int64
     scintPhotonsHisto::Hist1D64
