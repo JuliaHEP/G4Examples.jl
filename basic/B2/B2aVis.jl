@@ -1,6 +1,6 @@
 using Geant4
 using Geant4.SystemOfUnits
-using GLMakie, Rotations, IGLWrap_jll  # to force loding G4Vis extension
+using GLMakie, Rotations, LinearAlgebra, IGLWrap_jll  # to force loding G4Vis extension
 
 include("DetectorB2a.jl")
 

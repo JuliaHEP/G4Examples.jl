@@ -3,7 +3,7 @@ using Geant4.PhysicalConstants
 using Geant4.SystemOfUnits
 using FHist, Printf, Plots
 
-#using GLMakie, Rotations, IGLWrap_jll  # to force loading G4Vis extension
+#using GLMakie, Rotations, LinearAlgebra, IGLWrap_jll  # to force loading G4Vis extension
 
 #---Detector Geometry------------------------------------------------------------------------------
 include(joinpath(@__DIR__, "Parameters.jl"))

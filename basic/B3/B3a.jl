@@ -1,6 +1,6 @@
 using Geant4
 using Geant4.SystemOfUnits:  cm, cm3, mm, pGy, eplus, keV, g, eV
-#using GLMakie, Rotations, IGLWrap_jll  # to force loding G4Vis extension
+#using GLMakie, Rotations, LinearAlgebra, IGLWrap_jll  # to force loding G4Vis extension
 
 #---Define Detector Parameters struct--------------------------------------------------------------
 include(joinpath(@__DIR__, "DetectorB3.jl"))
