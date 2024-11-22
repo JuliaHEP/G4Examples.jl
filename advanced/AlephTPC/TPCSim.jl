@@ -3,9 +3,6 @@ using Geant4.SystemOfUnits
 using Parameters
 using PYTHIA8
 
-# Workaround for a clash with the Base.:+ function defined in PYTHIA8.jl
-Base.:+(x::Ptr{Nothing}, y::Int64) = x + UInt64(y)
-
 # to force loading G4Vis extension we need to load the following modules
 using GLMakie, Rotations, IGLWrap_jll, LinearAlgebra
 using PYTHIA8: px, py, pz
@@ -149,5 +146,9 @@ configure(app)
 initialize(app)
 
 beamOn(app, 1)
+display(evtdisplay.figure)
+
+beamOn(app, 1)
+display(evtdisplay.figure)
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl

@@ -17,9 +17,6 @@ using Geant4.SystemOfUnits
 using Parameters
 using PYTHIA8
 
-## Workaround for a clash with the Base.:+ function defined in PYTHIA8.jl
-Base.:+(x::Ptr{Nothing}, y::Int64) = x + UInt64(y)
-
 ## to force loading G4Vis extension we need to load the following modules
 #md using CairoMakie, Rotations, IGLWrap_jll, LinearAlgebra
 #nb using CairoMakie, Rotations, IGLWrap_jll, LinearAlgebra
@@ -181,8 +178,12 @@ initialize(app)
 
 # ## Run the Application
 beamOn(app, 1)
-PNG(evtdisplay.figure)
+#nb PNG(evtdisplay.figure)
+#md PNG(evtdisplay.figure)
+#jl display(evtdisplay.figure)
 
 # Another event
 beamOn(app, 1)
-PNG(evtdisplay.figure)
+#nb PNG(evtdisplay.figure)
+#md PNG(evtdisplay.figure)
+#jl display(evtdisplay.figure)

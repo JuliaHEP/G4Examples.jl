@@ -50,7 +50,7 @@ end
 ````
 
 ````
-Main.var"##230".AlephTPC
+Main.var"##231".AlephTPC
 ````
 
 The function `construct` is defined to create the geometry of the TPC detector. It receives
@@ -111,7 +111,7 @@ tpc = AlephTPC()          # create the detector
 ````
 
 ````
-Main.var"##230".AlephTPC
+Main.var"##231".AlephTPC
   totalL: Float64 4400.0
   innerR: Float64 310.0
   outerR: Float64 1800.0
@@ -240,7 +240,6 @@ initialize(app)
                              WWW : http://geant4.org/
 **************************************************************
 
-WARNING: Method definition var"_internal_callback_Geant4.G4JLApplication{Main.var\"##230\".AlephTPC, Geant4.G4JLNoData}"(CxxWrap.CxxWrapCore.ConstCxxPtr{Geant4.G4JLActionInitialization}, Ptr{Nothing}) in module Geant4 at /Users/mato/Development/Geant4.jl/src/G4CallBacks.jl:37 overwritten on the same line.
 
  *-------  PYTHIA Process Initialization  --------------------------*
  |                                                                  |
@@ -290,7 +289,6 @@ WARNING: Method definition var"_internal_callback_Geant4.G4JLApplication{Main.va
  --------  End PYTHIA Particle Data Table  -----------------------------------------------------------------------------------------
 
  G4ChordFinder: stepperDriverId: 2
-settings.display.camera_zoom = 0.1
 
 ````
 
