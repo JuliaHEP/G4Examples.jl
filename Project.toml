@@ -1,3 +1,8 @@
+name = "G4Examples"
+uuid = "3281e291-5df0-4855-8f55-c36026712c50"
+authors = ["Pere Mato <pere.mato@cern.ch>"]
+version = "0.1.0"
+
 [deps]
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 DisplayAs = "0b91fe84-8a4c-11e9-3e1d-67c38462b6d6"
@@ -16,4 +21,12 @@ Rotations = "6038ab10-8711-5258-84ad-4b1120ba62dc"
 
 [compat]
 FHist = "0.11"
-Geant4 = "0.1.16"
+Geant4 = "0.2"
+Literate = "2.20.1"
+
+[extras]
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test", "Pkg"]

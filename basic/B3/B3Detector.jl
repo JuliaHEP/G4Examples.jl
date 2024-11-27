@@ -2,7 +2,7 @@ using Parameters
 #--------------------------------------------------------------------------------------------------
 # Implementation of the B3::DetectorConstruction class
 #--------------------------------------------------------------------------------------------------
-@with_kw mutable struct DetectorB3 <: G4JLDetector
+@with_kw mutable struct B3Detector <: G4JLDetector
     cryst_dX::Float64 = 6cm
     cryst_dY::Float64 = 6cm
     cryst_dZ::Float64 = 3cm
@@ -13,7 +13,7 @@ using Parameters
     checkOverlaps::Bool = true
 end
 
-function construct(det::DetectorB3)::CxxPtr{G4VPhysicalVolume}
+function construct(det::B3Detector)::CxxPtr{G4VPhysicalVolume}
     (; cryst_dX, cryst_dY, cryst_dZ, nb_cryst, nb_rings, patient_radius, checkOverlaps, patient_dZ) = det
 
     #---Derived parameters-------------------------------------------------------------------------
@@ -132,4 +132,4 @@ function construct(det::DetectorB3)::CxxPtr{G4VPhysicalVolume}
     return physWorld
 end
 
-Geant4.getConstructor(::DetectorB3)::Function = construct
+Geant4.getConstructor(::B3Detector)::Function = construct

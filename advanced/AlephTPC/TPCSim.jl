@@ -4,7 +4,7 @@ using Parameters
 using PYTHIA8
 
 # to force loading G4Vis extension we need to load the following modules
-using GLMakie, Rotations, IGLWrap_jll, LinearAlgebra
+using CairoMakie, Rotations, IGLWrap_jll, LinearAlgebra
 using PYTHIA8: px, py, pz
 
 using Geant4.SystemOfUnits: m, cm, mole,cm3
@@ -133,7 +133,7 @@ function G4Vis.drawEvent(evtdisp::G4Vis.G4JLEventDisplay)
     end
     ##wait_for_key("Press any key to continue with next event")
 end
-evtdisplay = G4JLEventDisplay(joinpath(@__DIR__, "VisSettings.jl"))
+evtdisplay = G4JLEventDisplay(joinpath(@__DIR__, "TPCSimVisSettings.jl"))
 
 app = G4JLApplication(detector     = tpc,                       # detector defined above
                       generator    = LEPCollision(),            # primary generator to instantiate
@@ -141,7 +141,6 @@ app = G4JLApplication(detector     = tpc,                       # detector defin
                       physics_type = FTFP_BERT,                 # what physics list to instantiate
                       evtdisplay   = evtdisplay                 # event display
                      );
-
 configure(app)
 initialize(app)
 
@@ -150,5 +149,3 @@ display(evtdisplay.figure)
 
 beamOn(app, 1)
 display(evtdisplay.figure)
-
-# This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
