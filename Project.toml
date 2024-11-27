@@ -1,7 +1,7 @@
 name = "G4Examples"
 uuid = "3281e291-5df0-4855-8f55-c36026712c50"
 authors = ["Pere Mato <pere.mato@cern.ch>"]
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
