@@ -44,9 +44,3 @@ Example from the original at https://github.com/settwi/g4-basic-scintillation an
 
 ### AlephTPC
 Example that shows how easy is to integrate several packages in Julia. The example uses the package `PYTHIA8` to generate LEP collisions of e+ e- which are then input as primary particles to a `Geant4` simulation. Only the event display is exercised of the simulation. 
-
-
-### AlephTPC
-
-
-
