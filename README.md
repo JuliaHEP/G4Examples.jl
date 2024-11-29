@@ -43,4 +43,7 @@ Example of a bubble chamber in which we display the particle tracks for an event
 Example from the original at https://github.com/settwi/g4-basic-scintillation and adapted to the Geant4.jl interface. Introduces optical photons and a custom physics list. It produces histograms as a result.
 
 ### AlephTPC
-Example that shows how easy is to integrate several packages in Julia. The example uses the package `PYTHIA8` to generate LEP collisions of e+ e- which are then input as primary particles to a `Geant4` simulation. Only the event display is exercised of the simulation. 
+Example that shows how easy is to integrate several packages in Julia. The example uses the package `PYTHIA8` to generate LEP collisions of e+ e- which are then input as primary particles to a `Geant4` simulation. Only the event display is exercised of the simulation.
+
+### UserLib
+Example on how to build and call a user custom library providing additional Geant4 functionally that is not provided by the set of wrapped classes.
