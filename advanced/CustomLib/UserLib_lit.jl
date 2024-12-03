@@ -1,4 +1,4 @@
-# # Calling C++ code from Julia
+# # Calling Custom C++ library
 # 
 # An example of calling user libraries that can provide additional Geant4 functionally that is not 
 # provided by the set of wrapped classes. In this example we define a custom solid called `RoundCube`, 
@@ -24,7 +24,7 @@ using CairoMakie, Rotations, LinearAlgebra, IGLWrap_jll  # to force loading G4Vi
 #md import DisplayAs: PNG #hide
 
 # ## Building the custom library
-# The custom library is defined in the C++ file `UserLib.cpp`.
+# The custom library is defined in the C++ file `UserLibrary.cpp`.
 # The library provides a function to create a custom solid `RoundCube` and some additional functions
 # to interact with the solid.
 #
@@ -32,28 +32,36 @@ using CairoMakie, Rotations, LinearAlgebra, IGLWrap_jll  # to force loading G4Vi
 # We use only a sub-set of libraries needed to link shared library. 
 
 prefix = Geant4.Geant4_jll.artifact_dir
-dlext = Libdl.dlext
+dlext = Libdl.dlext;
+if Sys.KERNEL == :Linux
+    ldflags = "-Wl,-rpath,$prefix/lib -Wl,--no-as-needed"
+else
+    ldflags = "-Wl,-rpath,$prefix/lib -Wl"
+end
 ## Compilation of the custom library
-Base.run(`c++ -O2 -shared -fPIC -std=c++17 -I$prefix/include/Geant4 
-         -Wl,-rpath,$prefix/lib -L$prefix/lib 
-         -lG4geometry -lG4materials -lG4global -lG4clhep
-         -o UserLib.$dlext $(@__DIR__)/UserLib.cpp`).exitcode == 0 || error("Compilation failed")
+# The custom library is defined in the C++ file [`UserLibrary.cpp`](@ref). Please note that the
+# callable functions are defined with the `extern "C"` attribute to avoid name mangling.
+Base.run(`c++ -O2 -shared -fPIC -std=c++17 -I$prefix/include/Geant4 $ldflags
+         -L$prefix/lib -lG4geometry -lG4materials -lG4global -lG4clhep
+         -o UserLibrary.$dlext $(@__DIR__)/UserLibrary.cpp`).exitcode == 0 || error("Compilation failed")
 
 # ## Define Julia functions to interact with the custom library
 # The `@call` macro provides a very convenient way to call C functions (or extern "C").
 # We define the following functions to interact with the custom library in a more Julia-friendly way:
-const lib = "./UserLib.$(Libdl.dlext)"
+const lib = "./UserLibrary.$(Libdl.dlext)"
 createRoundCube(a,r) = @ccall lib.createRoundCube(a::Float64, r::Float64)::CxxPtr{G4VSolid}
 deleteRoundCube(s::CxxPtr{G4VSolid}) = @ccall lib.deleteRoundCube(s::CxxPtr{G4VSolid})::Cvoid
 infoRoundCube(s::CxxPtr{G4VSolid}) = (@ccall lib.infoRoundCube(s::CxxPtr{G4VSolid})::Cstring) |> unsafe_string
 
 # ## Testing the custom library
-# We create a `RoundCube` with side length `100` and radius `10` and draw the distance to the outside
-rcube = createRoundCube(10cm, 1cm)
-img = drawDistanceToOut(rcube[], 100000)
+# We create a `RoundCube` with side length `100` and radius `10` and draw the distance to the outside of the solid
+# from a number of randomly distributed points in a random directions. This should get a nice image of the 
+# surface `RoundCube`. It is exercising `Inside` and `DistanceToOut` methods of the custom solid.
+rcube = createRoundCube(10cm, 1cm)        # returns a CxxPtr{G4VSolid}
+img = drawDistanceToOut(rcube[], 100000)  # implemented in G4Vis ext. It expects a G4VSolid. 
 #jl display(img)
 #nb display("image/png", img)
-#md PNG(img)
+#md PNG(img) #hide
 # Get the information about the `RoundCube`
 info = infoRoundCube(rcube)
 println(info)

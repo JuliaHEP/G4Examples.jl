@@ -5,6 +5,7 @@
 #include "G4SubtractionSolid.hh"
 #include "G4UnionSolid.hh"
 
+// The custom solid class needs to inherit from G4VSolid and implement the required methods
 class RoundCube : public G4VSolid
 {
 public:
@@ -31,6 +32,7 @@ private:
   double a, r;
 };
 
+// Constructor of the custom solid (RoundCube) implemented as a union and subtractions of several solids
 RoundCube::RoundCube(double a, double r) : a(a), r(r), G4VSolid("RoundCube") {
   G4double ca = a / 4;
   G4VSolid* cube = new G4Box("cube", ca, ca, ca);
@@ -69,6 +71,7 @@ RoundCube::RoundCube(double a, double r) : a(a), r(r), G4VSolid("RoundCube") {
   solid = new G4UnionSolid("u5", u4, u4, G4Transform3D(G4RotationMatrix(0, 0, M_PI), G4ThreeVector()));
 }
 
+// Define the callable functions for the custom solid
 extern "C" {
   G4VSolid* createRoundCube(double a, double r) {
     return new RoundCube(a, r);
