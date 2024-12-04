@@ -1,6 +1,5 @@
 #---Load the needed Julia modules------------------------------------------------------------------
 using Geant4
-using GeometryBasics
 using FHist
 using Plots
 using Parameters
