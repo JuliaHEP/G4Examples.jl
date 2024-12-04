@@ -7,6 +7,8 @@ using Parameters
 println("=====> Loading MyCode.jl")
 
 #---Simulation data struct-------------------------------------------------------------------------
+# define a mutable struct to store the simulation data (counters, hitograms, etc.)
+# make N+1 instances of this struct, where N is the number of threads
 @with_kw mutable struct MyData
     edep = 0.0
     edepHist = H1D("Event total Edep distribution", 100, 0., 110.)
@@ -46,12 +48,11 @@ function begin_of_run_action(run)
 end
 
 function end_of_run_action(run)
-    if G4Threading!G4GetThreadId() < 0
+    if G4Threading!G4GetThreadId() < 0   # only for the master thread
         println("=====> End of run")
         data = simdata[1]
-        ##---This is the master thread, so we need to add all the simulation results-----------------
         for d in simdata[2:end]
-            add!(data, d)
+            add!(data, d)                # merge all thread data to the master data
         end
         h = data.edepHist
         img = plot(h.hist, title=h.title)
