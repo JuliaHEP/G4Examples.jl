@@ -14,6 +14,7 @@
 //#include "G4SystemOfUnits.hh"
 #include "globals.hh"
 #include "G4VUserActionInitialization.hh"
+#include "G4UserWorkerInitialization.hh"
 #include <julia.h>
 #include <iostream>
 
@@ -37,6 +38,7 @@ class DetectorConstruction : public G4VUserDetectorConstruction
         new G4PVPlacement(0, G4ThreeVector(), logicCore, "Core", logicWorld, false, 0);
         return physWorld;
     }
+    void ConstructSDandField() override {}
 };
 
 //---Primary generator action class----------------------------------------------------------------
@@ -107,13 +109,32 @@ class RunAction : public G4UserRunAction
     runaction_f endrun_jl;
 };
 
+
+class WorkerInitialization : public G4UserWorkerInitialization {
+  public:
+    WorkerInitialization() = default;
+    virtual ~WorkerInitialization() = default;
+    virtual void WorkerInitialize() const override {
+      if (jl_get_pgcstack() == NULL) jl_adopt_thread();
+    }
+    virtual void WorkerStart() const override {}
+    virtual void WorkerRunStart() const override {}
+    virtual void WorkerRunEnd() const override {
+      jl_ptls_t ptls = jl_current_task->ptls;
+      jl_gc_safe_enter(ptls);
+    }
+    virtual void WorkerStop() const override {}
+};
+
 //---Action initialization class-------------------------------------------------------------------
 class ActionInitialization : public G4VUserActionInitialization
 {
   public:
     ActionInitialization() = default;
     ~ActionInitialization() override = default;
-    void BuildForMaster() const override {}
+    void BuildForMaster() const override {
+        SetUserAction(new RunAction);
+    }
     void Build() const override {
         SetUserAction(new PrimaryGeneratorAction);
         SetUserAction(new RunAction);
@@ -122,11 +143,16 @@ class ActionInitialization : public G4VUserActionInitialization
     }
 };
 
+
+
 JULIA_DEFINE_FAST_TLS // only define this once, in an executable (not in a shared library) if you want fast code.
 
 //----Main program---------------------------------------------------------------------------------
 int main(int, char**)
 {
+    int nthreads = 0; // Default number of threads
+    if (getenv("G4NUMTHREADS")) nthreads = atoi(getenv("G4NUMTHREADS"));
+
     //--- Required to setup the Julia context
     jl_init();
         /* run Julia commands */
@@ -136,9 +162,19 @@ int main(int, char**)
     }
 
     //---Construct the default run manager
-    auto runManager = G4RunManagerFactory::CreateRunManager(G4RunManagerType::Serial);
+    G4RunManager* runManager;
+    if (nthreads > 0) { 
+        runManager = G4RunManagerFactory::CreateRunManager(G4RunManagerType::MT);
+        runManager->SetNumberOfThreads(nthreads);
+        runManager->SetUserInitialization(new WorkerInitialization());
+    } else {
+        runManager = G4RunManagerFactory::CreateRunManager(G4RunManagerType::Serial);
+    }
 
     //---Set mandatory initialization classes
+
+
+
     // Detector construction
     runManager->SetUserInitialization(new DetectorConstruction());
 
@@ -159,7 +195,12 @@ int main(int, char**)
     //UImanager->ApplyCommand("/tracking/verbose 1");
     UImanager->ApplyCommand("/gun/particle e+");
     UImanager->ApplyCommand("/gun/energy 100 MeV");
-    UImanager->ApplyCommand("/run/beamOn 100000");
+
+    // Start a run (we need to enter GC safe region here because the worker threads 
+    // will enter a wait state waiting for workers to finish and can block GC
+    auto state = jl_gc_safe_enter(jl_current_task->ptls);
+    runManager->BeamOn(100000);
+    jl_gc_safe_leave(jl_current_task->ptls, state);
 
     // Job termination
     delete runManager;

@@ -44,7 +44,10 @@
 #md #     You can also download this example as a
 #md #     [Jupyter notebook](JuliaAction.ipynb) and a plain
 #md #     [Julia source file](JuliaAction.jl).
-#
+#md #
+#md #     The C++ code is available as a [source file](G4example.cpp) and the
+#md #     Julia code is available as a [source file](MyCode.jl).
+#md #
 #md # #### Table of contents
 #md # ```@contents
 #md # Pages = ["JuliaAction.md"]
@@ -63,7 +66,7 @@ using Geant4_jll   # Needed to locate the Geant4 installation directory
 # Sources are in the same location as this script.
 cd(@__DIR__)
 g4prefix = Geant4_jll.artifact_dir
-jlprefix = dirname(Sys.BINDIR)
+jlprefix = dirname(Sys.BINDIR);
 
 # We use the executables `geant4-config` and `julia-config.jl` to get the needed 
 # libraries and compiler/linker flags.
@@ -74,6 +77,7 @@ jllibs = read(`$jlprefix/share/julia/julia-config.jl --ldlibs`, String) |> split
 append!(jllibs, ["-L$jlprefix/lib"])
 cflags = read(`$g4prefix/bin/geant4-config --cflags`, String) |> split
 ldflags = ["-Wl,-rpath,$g4prefix/lib", "-Wl,-rpath,$jlprefix/lib"];
+Sys.KERNEL == :Linux  && append!(ldflags, ["-Wl,--no-as-needed"]);
 
 # Run the compilation and link command
 Base.run(`c++ -O2 -fPIC $cflags -I$jlprefix/include/julia $ldflags $g4libs $jllibs 
@@ -81,12 +85,11 @@ Base.run(`c++ -O2 -fPIC $cflags -I$jlprefix/include/julia $ldflags $g4libs $jlli
 
 # ## Run the application
 # We need to set the variable `JULIA_PROJECT` pointing to correctly setup Julia environment. 
-withenv("JULIA_PROJECT" => "@.") do
-   Base.run(`./G4example`).exitcode == 0 || error("Execution failed");
+withenv("JULIA_PROJECT" => "@.", "G4NUMTHREADS" => "8") do
+   Base.run(`./G4example`).exitcode == 0 || error("Execution failed")
 end
 
 # ## Display the results
-display("image/png", read("edepHist.png"))
-# next
-#jl display("image/png", read("edepHist.png"))
-#md PNG(read("edepHist.png"))
+println("=====> The file edepHist.png should have been saved")
+#md # ![](edepHist.png)
+#nb # ![](edepHist.png)
