@@ -9,6 +9,7 @@ using G4Examples
     @test run(`julia basic/B2/B2a.jl`, devnull, devnull).exitcode  == 0
     @test run(`julia basic/B2/B2aVis.jl`, devnull, devnull).exitcode == 0
     @test run(`julia basic/B3/B3a.jl`, devnull, devnull).exitcode  == 0
+    @test run(`julia basic/B4/B4a.jl`, devnull, devnull).exitcode  == 0
 
 #    @test run(`julia extended/RE03/RE03.jl`, devnull, devnull).exitcode  == 0
 #    @test run(`julia extended/GPS/GPS.jl`, devnull, devnull).exitcode == 0

@@ -4,7 +4,7 @@ Pkg.instantiate()
 
 using Geant4
 using Geant4.SystemOfUnits
-using GLMakie, Rotations, LinearAlgebra, IGLWrap_jll  # to force loading G4Vis extension
+using GLMakie  # to force loading G4Vis extension
 
 include(joinpath(@__DIR__, "B2aDetector.jl"))
 
