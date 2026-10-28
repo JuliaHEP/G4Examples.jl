@@ -8,7 +8,7 @@ function run_example(script)
     name = splitext(file)[1]
     lit = joinpath(dir, "$name.lit")
     if isfile(lit)
-        Literate.script(lit, dir, name = name, keep_comments = false, documenter = true, credit = false)
+        Literate.script(lit, dir, name = name, keep_comments = false, credit = false)
     end
     @info "Running example $script"
     return run(`julia $script`, devnull, devnull).exitcode
