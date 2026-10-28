@@ -3,17 +3,15 @@ using Geant4.PhysicalConstants
 using Geant4.SystemOfUnits
 using FHist, Printf, Plots
 
-#using GLMakie, Rotations, LinearAlgebra, IGLWrap_jll  # to force loading G4Vis extension
+# using GLMakie, Rotations, LinearAlgebra, IGLWrap_jll  # to force loading G4Vis extension
 
-#---Detector Geometry------------------------------------------------------------------------------
 include(joinpath(@__DIR__, "Parameters.jl"))
 include(joinpath(@__DIR__, "Detector.jl"))
 
 crysdet = ScintDetector()
-#world = scintConstruct(crystal)
-#draw(world[])
+# world = scintConstruct(crystal)
+# draw(world[])
 
-#----Physics---------------------------------------------------------------------------------------
 struct ScintPhysicsList <: G4VUserPhysicsList
     function ScintPhysicsList(verbose)
         pl = FTFP_BERT(verbose)
@@ -25,16 +23,14 @@ struct ScintPhysicsList <: G4VUserPhysicsList
         # I have found Cherenkov radiation to be error-prone
         SetProcessActivation(optpar, "Cerenkov", true);
         return pl
-    end 
+    end
 end
 
-#---Particle Gun initialization--------------------------------------------------------------------
-particlegun = G4JLGunGenerator(particle = "gamma", 
-                               energy = 30keV, 
-                               direction = G4ThreeVector(0, 0, -1), 
+particlegun = G4JLGunGenerator(particle = "gamma",
+                               energy = 30keV,
+                               direction = G4ThreeVector(0, 0, -1),
                                position = G4ThreeVector(0, 0, 2cm))
 
-#---Simulation Data-------------(normally filled by actions)---------------------------------------
 const Hist1D64 = Hist1D{Float64}
 mutable struct ScintSimData <: G4JLSimulationData
     scintPhotonsPerEvent::Int64
@@ -43,13 +39,13 @@ mutable struct ScintSimData <: G4JLSimulationData
     crysEdepHisto::Hist1D64
     ScintSimData() = new()
 end
-#---Addd function-----------------------------------------------------------------------------------
+
 function add!(x::ScintSimData, y::ScintSimData)
     x.scintPhotonsHisto += y.scintPhotonsHisto
     x.siHitsHisto += y.siHitsHisto
     x.crysEdepHisto += y.crysEdepHisto
 end
-#---Plot Simulation data----------------------------------------------------------------------------
+
 function do_plot(data::ScintSimData)
     (;scintPhotonsHisto, siHitsHisto, crysEdepHisto) = data
     lay = @layout [° °; °]
@@ -59,12 +55,8 @@ function do_plot(data::ScintSimData)
     plot!(subplot=3, crysEdepHisto, title="energy deposited in crystal", xlabel="keV")
 end
 
-#---User actions and sentivive detectors-----------------------------------------------------------
 include(joinpath(@__DIR__, "UserActions.jl"))
 
-#--------------------------------------------------------------------------------------------------
-#---Create the Application-------------------------------------------------------------------------
-#--------------------------------------------------------------------------------------------------
 app = G4JLApplication(; detector = crysdet,                           # detector with parameters
                         simdata = ScintSimData(),                     # simulation data structure
                         generator = particlegun,                      # primary particle generator
@@ -79,12 +71,10 @@ app = G4JLApplication(; detector = crysdet,                           # detector
                                       "cebr3_log" => crystal_SD]      # mapping of LVs to SDs (+ means multiple LVs with same name)
                       );
 
-#---Configure, Initialize and Run------------------------------------------------------------------
 configure(app)
 initialize(app)
 
-#ui`/tracking/verbose 1`
+# ui`/tracking/verbose 1`
 beamOn(app,1000)
 
 do_plot(app.simdata[1])
-

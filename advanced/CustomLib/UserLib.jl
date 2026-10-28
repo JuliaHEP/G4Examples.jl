@@ -1,11 +1,10 @@
 using Geant4
 using Geant4.SystemOfUnits
 using Libdl
-using CairoMakie, Rotations, LinearAlgebra, IGLWrap_jll  # to force loading G4Vis extension
+using GLMakie  # to force loading G4Vis extension
 
 prefix = Geant4.Geant4_jll.artifact_dir
 dlext = Libdl.dlext;
-# Compilation of the custom library
 
 Base.run(`c++ -O2 -shared -fPIC -std=c++17 -I$prefix/include/Geant4
          -Wl,-rpath,$prefix/lib -L$prefix/lib
