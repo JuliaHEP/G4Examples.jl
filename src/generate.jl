@@ -17,8 +17,8 @@ end
 function generate(file)
     dir, name = dirname(file), splitext(basename(file))[1]
     @info "Generating $name.jl and $name.ipynb in $(relpath(dir, rootdir))"
-    Literate.script(file, dir, name = name, keep_comments = false, documenter = true, credit = false)
-    Literate.notebook(file, dir, name = name, execute = false, documenter = true, credit = true)
+    Literate.script(file, dir, name = name, keep_comments = false, credit = false)
+    Literate.notebook(file, dir, name = name, execute = false, credit = true)
 end
 
 files = litfiles(rootdir)
