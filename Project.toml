@@ -20,8 +20,6 @@ Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Rotations = "6038ab10-8711-5258-84ad-4b1120ba62dc"
 
-[sources]
-Geant4 = {path = "/Users/mato/Development/Geant4.jl"}
 
 [compat]
 FHist = "0.11"
