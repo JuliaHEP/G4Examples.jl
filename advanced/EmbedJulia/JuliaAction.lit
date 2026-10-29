@@ -73,10 +73,11 @@ jlprefix = dirname(Sys.BINDIR);
 
 g4libs = read(`$g4prefix/bin/geant4-config --libs`, String) |> split
 filter!(x -> x != "-lG4gdml", g4libs)
-jllibs = read(`$jlprefix/share/julia/julia-config.jl --ldlibs`, String) |> split
+jllibs = replace(read(`$jlprefix/share/julia/julia-config.jl --ldlibs`, String), "'" => "") |> split  # remove shell quotes
 append!(jllibs, ["-L$jlprefix/lib"])
 cflags = read(`$g4prefix/bin/geant4-config --cflags`, String) |> split
-ldflags = ["-Wl,-rpath,$g4prefix/lib", "-Wl,-rpath,$jlprefix/lib"];
+append!(cflags, ["-Wno-nullability-completeness", "-Wno-nullability-extension"])
+ldflags = ["-Wl,-rpath,$g4prefix/lib"];
 Sys.KERNEL == :Linux  && append!(ldflags, ["-Wl,--no-as-needed"]);
 
 # Run the compilation and link command
