@@ -1,5 +1,6 @@
 using Geant4
 using Geant4.SystemOfUnits
+using Geant4.PhysicalConstants
 using FHist, Plots, Printf
 
 include(joinpath(@__DIR__, "OpDetector.jl"))
@@ -105,6 +106,7 @@ function setgun!(data::OpGunData; kwargs...)
     for (k, v) in kwargs
         setproperty!(data, k, v)
     end
+    data.direction = data.direction ./ sqrt(sum(data.direction .^ 2))     ## normalize the direction
     gun = data.gun
     isnothing(gun) && return             ## the gun is created later, at initialization
     SetParticleByName(gun, data.particle)
@@ -153,7 +155,8 @@ const STATUS_NAMES = Dict(Int(getfield(Geant4, n)) => String(n) for n in names(G
 
 mutable struct OpNovice2SimData <: G4JLSimulationData
     ##---Settings and cached pointers--------------------------------------------------------------
-    killOnSecondSurface::Bool
+    killOnSecondSurface::Bool       ## kill photons when they reach a second surface
+    summary::Bool                   ## print the summary at the end of the run
     opticalphoton::CxxPtr{G4ParticleDefinition}
     boundary::CxxPtr{G4OpBoundaryProcess}
     ##---Per-track state (TrackInformation in C++)-------------------------------------------------
@@ -181,7 +184,7 @@ mutable struct OpNovice2SimData <: G4JLSimulationData
     totalSurface::Int
     boundaryProcs::Dict{Int, Int}
     histos::Dict{Symbol, Hist}
-    OpNovice2SimData(; killOnSecondSurface=false) = new(killOnSecondSurface)
+    OpNovice2SimData(; killOnSecondSurface=false, summary=true) = new(killOnSecondSurface, summary)
 end
 
 function beginrun(run::G4Run, app::G4JLApplication)::Nothing
@@ -221,6 +224,19 @@ function endrun(run::G4Run, app::G4JLApplication)::Nothing
     nEvt = GetNumberOfEvent(run)
     nEvt == 0 && return
     (; histos, boundaryProcs) = data
+    ##---Normalize the refraction/reflection histograms to the photons at each angle-------------
+    h_refract, h_reflect = histos[:fresnel_refraction], histos[:reflection]
+    tot = bincounts(h_refract) .+ bincounts(h_reflect)
+    for h in (h_refract, h_reflect)
+        counts, w2 = bincounts(h), sumw2(h)
+        for i in eachindex(tot)
+            tot[i] > 0 || continue
+            counts[i] /= tot[i]
+            w2[i] /= tot[i]^2
+        end
+    end
+    data.summary || return
+
     @printf "\n    Run Summary\n"
     @printf "---------------------------------\n"
     @printf "Primary particle was: %s with energy %s.\n" data.particle (data.energy < keV ? "$(data.energy/eV) eV" : "$(data.energy/MeV) MeV")
@@ -261,19 +277,8 @@ function endrun(run::G4Run, app::G4JLApplication)::Nothing
     @printf " Unaccounted for:            %8d\n" data.totalSurface - total
     @printf "---------------------------------\n"
 
-    ##---Normalize the refraction/reflection histograms to the photons at each angle-------------
-    h_refract, h_reflect = histos[:fresnel_refraction], histos[:reflection]
-    tot = bincounts(h_refract) .+ bincounts(h_reflect)
-    for h in (h_refract, h_reflect)
-        counts, w2 = bincounts(h), sumw2(h)
-        for i in eachindex(tot)
-            tot[i] > 0 || continue
-            counts[i] /= tot[i]
-            w2[i] /= tot[i]^2
-        end
-    end
     ##---Brewster angle and critical angle------------------------------------------------------
-    if sum(tot) > 0 && !isnothing(data.polarization)
+    if sum(tot) > 0 && !isnothing(data.polarization) && det.surfaceType != coated
         refract, reflect = bincounts(h_refract), bincounts(h_reflect)
         centers = bincenters(h_refract)
         halfwidth = binedges(h_refract)[2] - centers[1]
@@ -335,6 +340,10 @@ function boundaryStatus!(data::OpNovice2SimData, status::Int, angle::Float64, p1
         push!(histos[:reflection], angle)
     elseif status == Int(TotalInternalReflection)
         push!(histos[:tir], angle)
+        push!(histos[:reflection], angle)
+    elseif status == Int(CoatedDielectricRefraction) || status == Int(CoatedDielectricFrustratedTransmission)
+        push!(histos[:fresnel_refraction], angle)
+    elseif status == Int(CoatedDielectricReflection)
         push!(histos[:reflection], angle)
     elseif status == Int(SpikeReflection)
         push!(histos[:spike_reflection], angle)
@@ -471,12 +480,16 @@ setgun!(generator, particle = "opticalphoton", energy = 5eV, position = (99.99cm
         randomDirection = true, polarization = 0.)
 beamOn(app, 100000)
 
-function plot_fresnel(data::OpNovice2SimData)
+function plot_fresnel(data::OpNovice2SimData; title="", expected=nothing)
     (; histos, polarization) = data
-    img = plot(title="Polarization angle $(round(polarization/deg)) deg", xlabel="Incident angle [deg]",
+    img = plot(title="$title polarization angle $(round(polarization/deg)) deg", xlabel="Incident angle [deg]",
                ylabel="Fraction of photons", legend=:right, size=(800,500))
-    plot!(img, histos[:fresnel_refraction], label="Fresnel refraction")
-    plot!(img, histos[:reflection], label="Fresnel reflection + TIR")
+    plot!(img, histos[:fresnel_refraction], label="Refraction")
+    plot!(img, histos[:reflection], label="Reflection (including TIR)")
+    if !isnothing(expected)
+        angles = 0:0.25:90
+        plot!(img, angles, expected.(angles .* deg), label="Expected reflectance", color=:black, linewidth=2)
+    end
     return img
 end
 img = plot_fresnel(app.simdata[1])
@@ -485,4 +498,125 @@ display(img)
 setgun!(generator, polarization = 90deg)
 beamOn(app, 100000)
 img = plot_fresnel(app.simdata[1])
+display(img)
+
+coated_detector = OpDetector(
+    tankProperties = PropertyMap("RINDEX"    => ([2eV, 8eV], [1.4, 1.4]),
+                                 "ABSLENGTH" => ([2eV, 5eV, 8eV], [100mm, 200mm, 300mm])),
+    worldProperties = PropertyMap("RINDEX"    => ([2eV, 8eV], [1.0, 1.0]),
+                                  "ABSLENGTH" => ([2eV, 5eV, 8eV], [1000m, 2000m, 3000m])),
+    surfaceType = coated,
+    surfaceModel = unified,
+    surfaceFinish = polished,
+    surfaceProperties = PropertyMap("REFLECTIVITY" => ([2eV, 8eV], [1.0, 1.0]),
+                                    "COATEDRINDEX" => ([2eV, 8eV], [1.7, 1.7])),
+    surfaceConstProperties = ConstPropertyMap("COATEDTHICKNESS" => 100nm))
+reinitialize(app, coated_detector)
+
+function thinFilmReflectance(θ, pol; n1=1.4, nc=1.7, n3=1.0, d=100nm, λ=h_Planck*c_light/5eV)
+    c1 = cos(θ)
+    cc = sqrt(complex(1 - (n1*sin(θ)/nc)^2))          ## cosine of the angle in the coating
+    c3 = sqrt(complex(1 - (n1*sin(θ)/n3)^2))          ## cosine of the angle in the second medium
+    if pol == :s
+        r12 = (n1*c1 - nc*cc) / (n1*c1 + nc*cc)
+        r23 = (nc*cc - n3*c3) / (nc*cc + n3*c3)
+    else  ## :p
+        r12 = (nc*c1 - n1*cc) / (nc*c1 + n1*cc)
+        r23 = (n3*cc - nc*c3) / (n3*cc + nc*c3)
+    end
+    phase = exp(2im * (2π/λ) * nc * d * cc)
+    return abs2((r12 + r23*phase) / (1 + r12*r23*phase))
+end
+
+setgun!(generator, particle = "opticalphoton", energy = 5eV, position = (99.99cm, 0., 0.),
+        direction = (1., 0., 0.), randomDirection = false, polarization = 0.)
+beamOn(app, 100000)
+let procs = app.simdata[1].boundaryProcs
+    reflected = get(procs, Int(CoatedDielectricReflection), 0) / sum(values(procs))
+    @printf "Reflectance at normal incidence: %.4f, expected %.4f\n" reflected thinFilmReflectance(0., :p)
+end
+
+setgun!(generator, randomDirection = true, polarization = 0.)
+beamOn(app, 100000)
+img = plot_fresnel(app.simdata[1], title="Coated surface,", expected = θ -> thinFilmReflectance(θ, :p))
+display(img)
+
+setgun!(generator, polarization = 90deg)
+beamOn(app, 100000)
+img = plot_fresnel(app.simdata[1], title="Coated surface,", expected = θ -> thinFilmReflectance(θ, :s))
+display(img)
+
+boundary_detector = OpDetector(
+    tankProperties = PropertyMap("RINDEX"    => ([2eV, 8eV], [1.3, 1.4]),
+                                 "ABSLENGTH" => ([2eV, 5eV, 8eV], [1000m, 2000m, 3000m])),
+    worldProperties = PropertyMap("RINDEX"    => ([2eV, 8eV], [1.01, 1.01]),
+                                  "ABSLENGTH" => ([2eV, 5eV, 8eV], [1000m, 2000m, 3000m])),
+    surfaceProperties = PropertyMap(
+        "SPECULARLOBECONSTANT"  => ([2eV, 8eV], [0.1, 0.1]),
+        "SPECULARSPIKECONSTANT" => ([2eV, 8eV], [0.1, 0.1]),
+        "BACKSCATTERCONSTANT"   => ([2eV, 8eV], [0.1, 0.1]),
+        "TRANSMITTANCE"         => ([2eV, 8eV], [0.1, 0.1]),
+        "REFLECTIVITY"          => ([2eV, 8eV], [0.8, 0.8]),
+        "EFFICIENCY"            => ([2eV, 8eV], [0.1, 0.1]),
+        "RINDEX"                => ([2eV, 8eV], [1.4, 1.5])),
+    surfaceSigmaAlpha = 0.2)
+
+const rough = ConstPropertyMap("SURFACEROUGHNESS" => 0.01)
+boundary_cases = [
+    # label                            model     type                  finish                 other parameters
+    ("unified ground",                  unified, dielectric_dielectric, ground,                (;)),
+    ("unified polished",                unified, dielectric_dielectric, polished,              (;)),
+    ("unified polished rough",          unified, dielectric_dielectric, polished,              (surfaceConstProperties=rough,)),
+    ("unified polishedfrontpainted",    unified, dielectric_dielectric, polishedfrontpainted,  (;)),
+    ("unified groundfrontpainted",      unified, dielectric_dielectric, groundfrontpainted,    (;)),
+    ("unified polishedbackpainted",     unified, dielectric_dielectric, polishedbackpainted,   (;)),
+    ("unified groundbackpainted",       unified, dielectric_dielectric, groundbackpainted,     (;)),
+    ("unified metal polished",          unified, dielectric_metal,      polished,              (;)),
+    ("unified metal ground",            unified, dielectric_metal,      ground,                (;)),
+    ("glisur polished",                 glisur,  dielectric_dielectric, polished,              (;)),
+    ("glisur polished rough",           glisur,  dielectric_dielectric, polished,              (surfaceConstProperties=rough,)),
+    ("glisur ground",                   glisur,  dielectric_dielectric, ground,                (surfacePolish=0.2,)),
+    ("glisur polishedfrontpainted",     glisur,  dielectric_dielectric, polishedfrontpainted,  (;)),
+    ("glisur polishedbackpainted",      glisur,  dielectric_dielectric, polishedbackpainted,   (;)),
+    ("glisur groundfrontpainted",       glisur,  dielectric_dielectric, groundfrontpainted,    (;)),
+    ("glisur groundbackpainted",        glisur,  dielectric_dielectric, groundbackpainted,     (surfacePolish=0.2,)),
+    ("glisur metal polished",           glisur,  dielectric_metal,      polished,              (;)),
+    ("glisur metal ground",             glisur,  dielectric_metal,      ground,                (surfacePolish=0.2,)),
+    ("DAVIS RoughTeflon_LUT",           DAVIS,   dielectric_LUTDAVIS,   RoughTeflon_LUT,       (;)),
+    ("DAVIS Detector_LUT",              DAVIS,   dielectric_LUTDAVIS,   Detector_LUT,          (;)),
+    ("LUT polishedlumirrorair",         LUT,     dielectric_LUT,        polishedlumirrorair,   (;)) ]
+
+data = app.simdata[1]
+data.killOnSecondSurface = true
+data.summary = false
+setgun!(generator, energy = 3eV, position = (0., 0., 0.), direction = (0.9, 0.44, 0.),
+        randomDirection = false, polarization = nothing)
+results = Pair{String, Dict{Int,Int}}[]
+for (label, model, type, finish, other) in boundary_cases
+    reinitialize(app, OpDetector(boundary_detector; surfaceModel=model, surfaceType=type, surfaceFinish=finish, other...))
+    beamOn(app, 10000)
+    push!(results, label => copy(data.boundaryProcs))
+end
+
+for (label, procs) in results
+    total = sum(values(procs))
+    line = join(["$(STATUS_NAMES[s]) $(round(100*n/total, digits=1))" for (s, n) in sort(collect(procs), by=last, rev=true)], ", ")
+    @printf "%-30s %s\n" label line
+end
+
+function plot_boundary(results)
+    statuses = sort(unique(s for (_, procs) in results for s in keys(procs)))
+    fractions = [get(procs, s, 0) / sum(values(procs)) for (_, procs) in results, s in statuses]
+    nrows, ncols = size(fractions)
+    img = heatmap(1:ncols, 1:nrows, fractions, yflip=true, clims=(0, 1), color=:viridis,
+                  xticks=(1:ncols, [STATUS_NAMES[s] for s in statuses]), xrotation=45,
+                  yticks=(1:nrows, first.(results)), size=(1100, 850),
+                  bottom_margin=20Plots.mm, left_margin=5Plots.mm, title="Percentage of photons by boundary status")
+    for i in 1:nrows, j in 1:ncols
+        f = fractions[i, j]
+        f >= 0.005 && annotate!(img, j, i, Plots.text(round(Int, 100f), 7, f > 0.5 ? :black : :white))
+    end
+    return img
+end
+img = plot_boundary(results)
 display(img)

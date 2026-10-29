@@ -8,13 +8,19 @@ of optical photon generation and transport are recorded.
 
 The C++ UI commands that set the optical properties (`/opnovice2/boxProperty`,
 `/opnovice2/surfaceFinish`, ...) are keyword arguments of the `OpDetector` structure
-in Julia. The example reproduces two of the C++ macros:
+in Julia. The example reproduces four of the C++ macros:
 
 - `electron.mac`: 1 MeV electrons in a scintillating BGO tank. It prints the Cerenkov and
   scintillation photon yields and plots their spectra and the scintillation time profile.
 - `fresnel.mac`: polarized optical photons with random direction hit a polished surface.
   It plots the fraction of refracted and reflected photons against the incident angle, and
   compares the Brewster angle and the critical angle with the expected values.
+- `coated.mac`: photons hit a surface with a 100 nm coating. The reflectance at normal
+  incidence is compared with the thin-film interference formula. In addition to the C++
+  macro, a scan in incident angle for both polarizations is plotted against the formula.
+- `boundary.mac`: photons hit the surface with each of the 21 configurations of the macro
+  (unified, glisur, DAVIS and LUT models with their types and finishes). The fractions of
+  the boundary process outcomes are printed and shown as a heatmap.
 
 ## Files
 
@@ -35,3 +41,6 @@ in Julia. The example reproduces two of the C++ macros:
   scintillation photons (`G4Cerenkov/G4Scintillation::GetNumPhotons`) are not included.
 - `G4Cerenkov` builds its tables only for the materials that exist at the first
   initialization, so the electron study runs first.
+- In `boundary.mac` without an angle, the C++ generator chooses a random polarization for
+  the first photon and keeps it for the rest of the run. The Julia generator chooses a new
+  random polarization for each photon.
