@@ -32,6 +32,7 @@ end
     @test run_example("extended/TestEm3/TestEm3Vis.jl") == 0
     @test run_example("extended/field02/field02.jl") == 0
     @test run_example("extended/Solids/Solids.jl") == 0
+    @test run_example("extended/OpNovice/OpNovice2.jl") == 0
 
     @test run_example("advanced/Scintillation/Scintillation.jl")  == 0
     @test run_example("advanced/HBC30/HBC30.jl") == 0
