@@ -35,9 +35,9 @@ dlext = Libdl.dlext;
 # The custom library is defined in the C++ file `UserLib.cpp`. Please note that the
 # callable functions are defined with the `extern "C"` attribute to avoid name mangling.
 Base.run(`c++ -O2 -shared -fPIC -std=c++17 -I$prefix/include/Geant4
+         -o UserLib.$dlext $(@__DIR__)/UserLib.cpp
          -Wl,-rpath,$prefix/lib -L$prefix/lib
-         -lG4geometry -lG4materials -lG4global -lG4clhep
-         -o UserLib.$dlext $(@__DIR__)/UserLib.cpp`).exitcode == 0 || error("Compilation failed")
+         -lG4geometry -lG4materials -lG4global -lG4clhep`).exitcode == 0 || error("Compilation failed")
 
 # ## Define Julia functions to interact with the custom library
 # The `@ccall` macro provides a very convenient way to call C functions (or `extern "C"`).

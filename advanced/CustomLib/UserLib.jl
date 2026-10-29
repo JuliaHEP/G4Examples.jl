@@ -7,9 +7,9 @@ prefix = Geant4.Geant4_jll.artifact_dir
 dlext = Libdl.dlext;
 
 Base.run(`c++ -O2 -shared -fPIC -std=c++17 -I$prefix/include/Geant4
+         -o UserLib.$dlext $(@__DIR__)/UserLib.cpp
          -Wl,-rpath,$prefix/lib -L$prefix/lib
-         -lG4geometry -lG4materials -lG4global -lG4clhep
-         -o UserLib.$dlext $(@__DIR__)/UserLib.cpp`).exitcode == 0 || error("Compilation failed")
+         -lG4geometry -lG4materials -lG4global -lG4clhep`).exitcode == 0 || error("Compilation failed")
 
 const lib = "./UserLib.$(Libdl.dlext)"
 createRoundCube(a,r) = @ccall lib.createRoundCube(a::Float64, r::Float64)::CxxPtr{G4VSolid}
