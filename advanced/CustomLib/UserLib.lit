@@ -20,7 +20,10 @@
 using Geant4
 using Geant4.SystemOfUnits
 using Libdl
-using GLMakie  # to force loading G4Vis extension
+#md using CairoMakie  # to force loading G4Vis extension
+#nb using CairoMakie  # to force loading G4Vis extension
+#jl using GLMakie  # to force loading G4Vis extension
+#md import DisplayAs: PNG #hide
 
 # ## Building the custom library
 # The custom library is defined in the C++ file `UserLib.cpp`.
@@ -54,7 +57,7 @@ infoRoundCube(s::CxxPtr{G4VSolid}) = (@ccall lib.infoRoundCube(s::CxxPtr{G4VSoli
 # of the custom solid.
 rcube = createRoundCube(10cm, 1cm)        # returns a CxxPtr{G4VSolid}
 img = drawDistanceToOut(rcube[], 100000)  # implemented in G4Vis ext. It expects a G4VSolid.
-#md display("image/png", img)
+#md PNG(img) #hide
 #nb display("image/png", img)
 #jl display(img)
 
