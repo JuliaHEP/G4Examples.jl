@@ -1,49 +1,106 @@
-# Geant4.jl Examples Repository
+# Geant4.jl Examples
 
-Collection of examples to exercise the available functionality of the Julia bindings to Geant4. The idea was to separate this repository from the Julia package [Geant4.jl](https://github.com/JuliaHEP/Geant4.jl) since the examples carry additional dependencies to packages that provide visualization and data analysis functionality.
+[![CI](https://github.com/JuliaHEP/G4Examples.jl/actions/workflows/ci.yaml/badge.svg)](https://github.com/JuliaHEP/G4Examples.jl/actions/workflows/ci.yaml)
 
-The examples are organised in 3 sections following more or less to the organisation of the Geant4 repository: basic, extended and advanced. As soon new functionality will be added to Geant4.jl, new examples will be added in this repository.
+Examples for [Geant4.jl](https://github.com/JuliaHEP/Geant4.jl), the Julia bindings to the
+[Geant4](https://geant4.web.cern.ch) simulation toolkit. They exercise the functionality of the
+bindings, from simple geometries to optical photons, scoring, magnetic fields and event displays.
 
-All examples are provided as *Julia scripts* and *Jupyter notebooks* at the same time. This is achieved by using the package [`Literate.jl`](https://github.com/fredrikekre/Literate.jl) that uses a single input file to produce the different output formats. The script in `src/literate.jl` does the conversion.
+The examples live in their own repository, outside Geant4.jl, because they depend on extra
+packages for visualization and analysis (Makie, Plots, FHist, PYTHIA8, ...). They are also the
+source of the example pages in the
+[Geant4.jl documentation](https://juliahep.github.io/Geant4.jl/stable/).
 
-Finally, the examples in this repository as also used to generate the documentation of [`Geant4.jl`](https://juliahep.github.io/Geant4.jl/stable/)
+## Getting started
 
-## Basic
-### B1/B1
-This is most basic example using a more Geant4 native interface. It is creating a geometry with two volumes and standard physcis.
+Clone the repository and install the dependencies:
 
-### B2/B2a
-Basic example of a calorimeter detector using a sensitive detector to collect 'hits'. 
+```sh
+git clone https://github.com/JuliaHEP/G4Examples.jl.git
+cd G4Examples.jl
+julia --project=. -e 'using Pkg; Pkg.instantiate()'
+```
 
-## B3/B3a
-The example simulates schematically a Positron Emitted Tomography system. It uses a custom primary particle generator, a custom physics list and makes use of two sensitive detectors.
+The first installation downloads the Geant4 libraries and data files, so it takes a while.
 
-## Extended
+Run an example as a script:
 
-### Solids
-Notebook and script to exercise and visualize all implemented solid types.
+```sh
+julia --project=. basic/B1/B1.jl
+```
 
-### TestEm3
-This example comes from *extended/electromagnetic/TestEm3* example. It is fully based on user actions. It comes with additional packages such as FHist.jl and Plots.jl to provide some data analysis and visualization ogf results. 
+You can also open the notebook (`.ipynb`) of an example in Jupyter or VS Code.
 
-### RE03
-Example using the Geant4 built-in scoring mechanism. A more complete example using scoring is the `WaterPhantom` example in the advanced section.
+The examples with visualization use GLMakie in the scripts and open a window. On a Linux machine
+without a display, run them with `xvfb-run`. The notebooks use CairoMakie and show the figures
+inline.
 
-### GPS
-Example using the General Particle Source primary particle generator class `G4GeneralParticleSource`
+Run the test suite, which runs the examples and checks that they finish without errors:
 
-## Advanced
-### WaterPhantom
-Example in a notebook format similar to RE03 but with different primary particle generator (MedicalBeam) and using the scoring mechanism. Plots are produced after each run.
+```sh
+julia --project=. -e 'using Pkg; Pkg.test()'
+```
 
-### HBC30
-Example of a bubble chamber in which we display the particle tracks for an event that passes the trigger. This example introduces a magnetic field.
+## How the examples are organised
 
-### Scintillation
-Example from the original at https://github.com/settwi/g4-basic-scintillation and adapted to the Geant4.jl interface. Introduces optical photons and a custom physics list. It produces histograms as a result.
+The examples are grouped in three sections, like the examples of the Geant4 C++ distribution:
+`basic`, `extended` and `advanced`. Each example is in its own directory and is written once, in
+[Literate.jl](https://github.com/fredrikekre/Literate.jl) format. The other formats are generated
+from it.
 
-### AlephTPC
-Example that shows how easy is to integrate several packages in Julia. The example uses the package `PYTHIA8` to generate LEP collisions of e+ e- which are then input as primary particles to a `Geant4` simulation. Only the event display is exercised of the simulation.
+| File | Content |
+|---|---|
+| `X.lit` | Source of the example: code with Markdown comments. Edit this file. |
+| `X.jl` | Plain Julia script, generated from `X.lit` |
+| `X.ipynb` | Jupyter notebook, generated from `X.lit` |
+| `XDetector.jl` | Detector construction, in a separate file when it is long or shared |
+| `XVisSettings.jl` | Settings of the event display (colours, trajectories, ...) |
 
-### UserLib
-Example on how to build and call a user custom library providing additional Geant4 functionally that is not provided by the set of wrapped classes.
+After you edit a `.lit` file, regenerate the script and the notebook:
+
+```julia
+using Literate
+Literate.script("basic/B1/B1.lit", "basic/B1", name="B1", keep_comments=false, documenter=true, credit=false)
+Literate.notebook("basic/B1/B1.lit", "basic/B1", name="B1", execute=false, documenter=true)
+```
+
+The tests regenerate the script from the `.lit` file before running it.
+
+## Examples
+
+### Basic
+
+| Example | Description |
+|---|---|
+| [B1](basic/B1) | Simple geometry with a few volumes and standard physics. It uses an interface close to the native C++ one. `B1vis.jl` draws the geometry. |
+| [B2](basic/B2) | Fixed-target tracker that collects hits with a sensitive detector. `B2aVis` adds an event display. |
+| [B3](basic/B3) | Schematic Positron Emission Tomography (PET) system, with a custom primary generator, a custom physics list and two sensitive detectors. |
+| [B4](basic/B4) | Sampling calorimeter with energy deposits accumulated in user actions. `B4aVis.jl` adds an event display. |
+
+### Extended
+
+| Example | Description |
+|---|---|
+| [Solids](extended/Solids) | Builds and draws all the solid types available in Geant4.jl. |
+| [TestEm3](extended/TestEm3) | Sampling calorimeter from *extended/electromagnetic/TestEm3*, based on user actions, with histograms made with FHist and Plots. `TestEm3-gdml.jl` reads the geometry from a GDML file and `TestEm3Vis.jl` adds an event display. |
+| [RE03](extended/RE03) | Geant4 built-in scoring, with a scoring mesh defined by a `G4JLScoringMesh`. |
+| [GPS](extended/GPS) | Primary particles from the General Particle Source (`G4GeneralParticleSource`). |
+| [field02](extended/field02) | Tracking in an electric field and field-dependent electromagnetic processes. |
+| [OpNovice](extended/OpNovice) | Port of *extended/optical/OpNovice2*: optical properties and surfaces, Cerenkov and scintillation photons, Fresnel reflection, thin-film coatings and the optical boundary models. |
+
+### Advanced
+
+| Example | Description |
+|---|---|
+| [WaterPhantom](advanced/WaterPhantom) | Dose in a water phantom with scoring meshes and a medical beam generator. Plots are made after each run. |
+| [HBC30](advanced/HBC30) | CERN 30 cm liquid hydrogen bubble chamber in a magnetic field, with an event display of the events that pass a simple trigger. |
+| [Scintillation](advanced/Scintillation) | Scintillation detector adapted from [g4-basic-scintillation](https://github.com/settwi/g4-basic-scintillation). Optical photons, optical surfaces and a custom physics list. |
+| [AlephTPC](advanced/AlephTPC) | LEP e⁺e⁻ collisions generated with PYTHIA8 and simulated in the ALEPH Time Projection Chamber, with an event display. |
+| [RICH](advanced/RICH) | Ring Imaging Cherenkov detector with aerogel and C₄F₁₀ radiators. The Cherenkov angle is reconstructed from the photon hits and used to identify pions, kaons and protons. |
+| [CustomLib](advanced/CustomLib) | Builds a user C++ library, here a custom solid, and calls it from Julia, for Geant4 functionality that is not wrapped. |
+| [EmbedJulia](advanced/EmbedJulia) | The reverse: a C++ Geant4 application that embeds Julia and calls user actions written in Julia. |
+
+## Versions
+
+The examples use Geant4.jl `0.3` with Geant4 `11.2` or later (`Geant4_jll`). The tests run on
+Julia 1.10 and the latest 1.x release.
