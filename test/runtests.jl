@@ -40,4 +40,5 @@ end
     @test run_example("advanced/WaterPhantom/WaterPhantom.jl") == 0
     @test run_example("advanced/CustomLib/UserLib.jl") == 0
     @test run_example("advanced/EmbedJulia/JuliaAction.jl") == 0
+    @test run_example("advanced/RICH/RICH.jl") == 0
 end
