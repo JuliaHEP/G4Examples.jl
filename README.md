@@ -97,6 +97,7 @@ The tests regenerate the script from the `.lit` file before running it.
 | [Scintillation](advanced/Scintillation) | Scintillation detector adapted from [g4-basic-scintillation](https://github.com/settwi/g4-basic-scintillation). Optical photons, optical surfaces and a custom physics list. |
 | [AlephTPC](advanced/AlephTPC) | LEP e⁺e⁻ collisions generated with PYTHIA8 and simulated in the ALEPH Time Projection Chamber, with an event display. |
 | [RICH](advanced/RICH) | Ring Imaging Cherenkov detector with aerogel and C₄F₁₀ radiators. The Cherenkov angle is reconstructed from the photon hits and used to identify pions, kaons and protons. |
+| [XrayTES](advanced/XrayTES) | Port of *advanced/xray_TESdetector*: particle background of a TES X-ray detector in space (ATHENA X-IFU) from galactic cosmic-ray protons, with a complex geometry built from a CAD model and an anti-coincidence veto. |
 | [CustomLib](advanced/CustomLib) | Builds a user C++ library, here a custom solid, and calls it from Julia, for Geant4 functionality that is not wrapped. |
 | [EmbedJulia](advanced/EmbedJulia) | The reverse: a C++ Geant4 application that embeds Julia and calls user actions written in Julia. |
 
