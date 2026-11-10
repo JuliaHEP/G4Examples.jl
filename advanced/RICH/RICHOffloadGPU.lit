@@ -13,7 +13,7 @@
 # together in **batches**, and the hits are reconstructed when the results come back.
 #
 # The example shows:
-# - choosing a KernelAbstractions backend and the floating point precision (Float32 on Apple GPUs)
+# - choosing a KernelAbstractions backend (CUDA, Metal or CPU threads) and the floating point precision
 # - collecting the photons of several events and offloading them in batches, including the last
 #   incomplete batch in the end-of-run action
 # - comparing the hits and the reconstructed Cherenkov angles with the CPU propagator
@@ -31,8 +31,8 @@
 #md # ```
 
 # ## Loading the necessary Julia modules
-# In addition to the modules of the RICH example we load `KernelAbstractions` and, on macOS,
-# `Metal`. To use an NVIDIA GPU, load `CUDA` and use `CUDABackend()` instead.
+# In addition to the modules of the RICH example we load `KernelAbstractions` and a GPU package:
+# `Metal` on macOS and `CUDA` elsewhere. Both can be loaded on machines without a GPU.
 using Geant4
 using Geant4.SystemOfUnits
 using Geant4.PhysicalConstants
@@ -41,6 +41,8 @@ using LinearAlgebra: dot, normalize          ## Geant4 also exports `dot`
 using KernelAbstractions
 if Sys.isapple()
     using Metal
+else
+    using CUDA
 end
 #md using CairoMakie
 #nb using CairoMakie
@@ -49,10 +51,18 @@ end
 #md import DisplayAs: PNG #hide
 
 # ## Choose the backend
-# We use the Apple GPU if there is one, with single precision, and otherwise the CPU backend of
-# KernelAbstractions (with as many threads as Julia was started with, e.g. `julia -t auto`) in
-# double precision.
-backend, T = (@isdefined(Metal) && Metal.functional()) ? (MetalBackend(), Float32) : (CPU(), Float64)
+# We use an NVIDIA GPU (CUDA) or an Apple GPU (Metal) if there is one, and otherwise the CPU backend
+# of KernelAbstractions (with as many threads as Julia was started with, e.g. `julia -t auto`).
+# GPUs use single precision: Apple GPUs do not support Float64, and most NVIDIA GPUs (except the
+# data-centre ones, such as A100 or H100) are much slower in double precision. On those you can set
+# `T = Float64`; the geometrical tolerance of `GPUTracer{T}` follows the precision.
+backend, T = if @isdefined(CUDA) && CUDA.functional()
+    CUDABackend(), Float32
+elseif @isdefined(Metal) && Metal.functional()
+    MetalBackend(), Float32
+else
+    CPU(), Float64
+end
 @printf "Backend: %s, precision: %s, Julia threads: %d\n" backend T Threads.nthreads()
 
 # ## Detector, physics and primary generator

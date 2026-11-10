@@ -109,8 +109,9 @@ another propagator (on several threads or on a GPU, or writing the photons to a 
 
 `RICHOffloadGPU.lit` propagates the photons with `RICHTracerGPU.jl`, a port of the tracer to a
 [KernelAbstractions.jl](https://github.com/JuliaGPU/KernelAbstractions.jl) kernel with one thread
-per photon. It uses `MetalBackend()` in Float32 on Apple GPUs, and otherwise the `CPU()` backend
-in Float64 on Julia threads. For an NVIDIA GPU, load CUDA.jl and use `CUDABackend()`.
+per photon. It uses `CUDABackend()` on NVIDIA GPUs or `MetalBackend()` on Apple GPUs, in Float32,
+and otherwise the `CPU()` backend in Float64 on Julia threads. On data-centre NVIDIA GPUs with fast
+double precision (A100, H100) you can set `T = Float64`.
 
 - The structures are parametric in the floating point type (Apple GPUs do not support Float64).
 - The energy-dependent properties (gas index, Rayleigh length, quantum efficiency) are evaluated

@@ -6,10 +6,18 @@ using LinearAlgebra: dot, normalize          ## Geant4 also exports `dot`
 using KernelAbstractions
 if Sys.isapple()
     using Metal
+else
+    using CUDA
 end
 using GLMakie
 
-backend, T = (@isdefined(Metal) && Metal.functional()) ? (MetalBackend(), Float32) : (CPU(), Float64)
+backend, T = if @isdefined(CUDA) && CUDA.functional()
+    CUDABackend(), Float32
+elseif @isdefined(Metal) && Metal.functional()
+    MetalBackend(), Float32
+else
+    CPU(), Float64
+end
 @printf "Backend: %s, precision: %s, Julia threads: %d\n" backend T Threads.nthreads()
 
 include(joinpath(@__DIR__, "RICHDetector.jl"))
