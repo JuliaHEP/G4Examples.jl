@@ -1,6 +1,7 @@
 # Geant4.jl Examples
 
 [![CI](https://github.com/JuliaHEP/G4Examples.jl/actions/workflows/ci.yaml/badge.svg)](https://github.com/JuliaHEP/G4Examples.jl/actions/workflows/ci.yaml)
+[![Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://juliahep.github.io/G4Examples.jl/dev/)
 
 Examples for [Geant4.jl](https://github.com/JuliaHEP/Geant4.jl), the Julia bindings to the
 [Geant4](https://geant4.web.cern.ch) simulation toolkit. They exercise the functionality of the
@@ -40,6 +41,23 @@ Run the test suite, which runs the examples and checks that they finish without 
 ```sh
 julia --project=. -e 'using Pkg; Pkg.test()'
 ```
+
+## Documentation
+
+The [documentation](https://juliahep.github.io/G4Examples.jl/dev/) has one page per example, with
+the code and the output and plots obtained by running it. It is built by the CI on every push to
+`main` (and as a preview for pull requests). To build it locally:
+
+```sh
+julia --project=docs -e 'using Pkg; Pkg.instantiate()'
+julia --project=docs docs/make.jl            # all the examples (slow)
+julia --project=docs docs/make.jl B1 RICH    # only some examples, for a quick check
+```
+
+The result is in `docs/build/index.html`. `docs/make.jl` copies the example directories into
+`docs/src/examples`, runs each `.lit` file with Literate.jl in its own Julia process, and builds
+the site with Documenter.jl. A new `.lit` file is picked up automatically, and any `[file.jl](@ref)`
+link in it gets a page with the source of that file.
 
 ## How the examples are organised
 

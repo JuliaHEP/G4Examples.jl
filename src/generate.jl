@@ -8,7 +8,8 @@ const rootdir = dirname(@__DIR__)
 function litfiles(root)
     files = String[]
     for (dir, _, names) in walkdir(root)
-        any(startswith("."), splitpath(relpath(dir, root))) && continue
+        parts = splitpath(relpath(dir, root))
+        (any(startswith("."), parts) || first(parts) == "docs") && continue   ## skip the copies in docs/src/examples
         append!(files, joinpath(dir, f) for f in names if endswith(f, ".lit"))
     end
     return files
