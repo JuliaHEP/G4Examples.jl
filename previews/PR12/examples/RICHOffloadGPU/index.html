@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="referrer" content="no-referrer"/><title>RICH Detector with Optical Photons Offloaded to a GPU · G4Examples.jl</title><meta name="title" content="RICH Detector with Optical Photons Offloaded to a GPU · G4Examples.jl"/><meta property="og:title" content="RICH Detector with Optical Photons Offloaded to a GPU · G4Examples.jl"/><meta property="twitter:title" content="RICH Detector with Optical Photons Offloaded to a GPU · G4Examples.jl"/><meta name="description" content="Documentation for G4Examples.jl."/><meta property="og:description" content="Documentation for G4Examples.jl."/><meta property="twitter:description" content="Documentation for G4Examples.jl."/><meta property="og:url" content="https://juliahep.github.io/G4Examples.jl/examples/RICHOffloadGPU/"/><meta property="twitter:url" content="https://juliahep.github.io/G4Examples.jl/examples/RICHOffloadGPU/"/><link rel="canonical" href="https://juliahep.github.io/G4Examples.jl/examples/RICHOffloadGPU/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.63.2/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">G4Examples.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Introduction</a></li><li><span class="tocitem">Basic</span><ul><li><a class="tocitem" href="../B1/">Basic/B1 Example</a></li><li><a class="tocitem" href="../B2a/">Basic/B2a Example</a></li><li><a class="tocitem" href="../B2aVis/">Basic/B2a Event Display Example</a></li><li><a class="tocitem" href="../B3a/">Basic/B3a Example</a></li><li><a class="tocitem" href="../B4a/">Basic/B4a Example</a></li></ul></li><li><span class="tocitem">Extended</span><ul><li><a class="tocitem" href="../GPS/">Extended/GPS Example</a></li><li><a class="tocitem" href="../OpNovice2/">OpNovice2 Example</a></li><li><a class="tocitem" href="../RE03/">Extended/RE03 Example</a></li><li><a class="tocitem" href="../Solids/">Geant4 Solids</a></li><li><a class="tocitem" href="../TestEm3/">Extended/TestEm3 Example</a></li><li><a class="tocitem" href="../field02/">Extended/field02 Example</a></li></ul></li><li><span class="tocitem">Advanced</span><ul><li><a class="tocitem" href="../TPCSim/">Simulation of the Aleph TPC</a></li><li><a class="tocitem" href="../UserLib/">Calling Custom C++ library</a></li><li><a class="tocitem" href="../JuliaAction/">Calling G4 actions in Julia</a></li><li><a class="tocitem" href="../HBC30/">CERN Liquid Hydrogen Bubble Chamber</a></li><li><a class="tocitem" href="../MedicalLinac/">Medical Linac</a></li><li><a class="tocitem" href="../RICH/">RICH Detector</a></li><li><a class="tocitem" href="../RICHOffload/">RICH Detector with Offloaded Optical Photons</a></li><li class="is-active"><a class="tocitem" href>RICH Detector with Optical Photons Offloaded to a GPU</a><ul class="internal"><li><a class="tocitem" href="#Loading-the-necessary-Julia-modules"><span>Loading the necessary Julia modules</span></a></li><li><a class="tocitem" href="#Choose-the-backend"><span>Choose the backend</span></a></li><li><a class="tocitem" href="#Detector,-physics-and-primary-generator"><span>Detector, physics and primary generator</span></a></li><li><a class="tocitem" href="#The-CPU-and-GPU-propagators"><span>The CPU and GPU propagators</span></a></li><li><a class="tocitem" href="#Define-the-Simulation-Data"><span>Define the Simulation Data</span></a></li><li><a class="tocitem" href="#Reconstruction-of-the-Cherenkov-angle"><span>Reconstruction of the Cherenkov angle</span></a></li><li><a class="tocitem" href="#Offloading-a-batch"><span>Offloading a batch</span></a></li><li><a class="tocitem" href="#Define-the-User-Actions"><span>Define the User Actions</span></a></li><li><a class="tocitem" href="#Create-the-Application"><span>Create the Application</span></a></li><li><a class="tocitem" href="#Configure-and-Initialize"><span>Configure and Initialize</span></a></li><li><a class="tocitem" href="#CPU-versus-GPU-propagation"><span>CPU versus GPU propagation</span></a></li><li><a class="tocitem" href="#Single-photon-resolution"><span>Single photon resolution</span></a></li><li><a class="tocitem" href="#Throughput-as-a-function-of-the-batch-size"><span>Throughput as a function of the batch size</span></a></li></ul></li><li><a class="tocitem" href="../Scintillation/">Scintillation Example</a></li><li><a class="tocitem" href="../WaterPhantom/">Water Phantom with Scoring</a></li><li><a class="tocitem" href="../XrayTES/">X-ray TES Detector</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Advanced</a></li><li class="is-active"><a href>RICH Detector with Optical Photons Offloaded to a GPU</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>RICH Detector with Optical Photons Offloaded to a GPU</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/JuliaHEP/G4Examples.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/JuliaHEP/G4Examples.jl/blob/main/advanced/RICH/RICHOffloadGPU.lit" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="RICH-Detector-with-Optical-Photons-Offloaded-to-a-GPU"><a class="docs-heading-anchor" href="#RICH-Detector-with-Optical-Photons-Offloaded-to-a-GPU">RICH Detector with Optical Photons Offloaded to a GPU</a><a id="RICH-Detector-with-Optical-Photons-Offloaded-to-a-GPU-1"></a><a class="docs-heading-anchor-permalink" href="#RICH-Detector-with-Optical-Photons-Offloaded-to-a-GPU" title="Permalink"></a></h1><p>This example continues the <a href="../RICHOffload/#RICH-Detector-with-Offloaded-Optical-Photons">RICH Detector with Offloaded Optical Photons</a> example. The optical photons are again collected by the stacking action and killed, but they are now propagated on a GPU. The propagator in <a href="../RICHTracerGPU/#RICHTracerGPU.jl">RICHTracerGPU.jl</a> is a port of the CPU ray tracer to a <a href="https://github.com/JuliaGPU/KernelAbstractions.jl">KernelAbstractions.jl</a> kernel, with one GPU thread per photon. The same kernel runs on Apple GPUs (Metal.jl), NVIDIA GPUs (CUDA.jl), AMD GPUs (AMDGPU.jl), or on the CPU with Julia threads.</p><p>A GPU needs many photons at once to be efficient: launching a kernel and copying the data costs some tens of microseconds, about the time the CPU needs to propagate the few hundred photons of one event in this detector. The photons of many events are therefore collected and offloaded together in <strong>batches</strong>, and the hits are reconstructed when the results come back.</p><p>The example shows:</p><ul><li>choosing a KernelAbstractions backend (CUDA, Metal or CPU threads) and the floating point precision</li><li>collecting the photons of several events and offloading them in batches, including the last incomplete batch in the end-of-run action</li><li>comparing the hits and the reconstructed Cherenkov angles with the CPU propagator</li><li>measuring the throughput of the CPU and GPU propagators as a function of the batch size</li></ul><div class="admonition is-info" id="Note-that-20ed243c06bbdc08"><header class="admonition-header">Note that<a class="admonition-anchor" href="#Note-that-20ed243c06bbdc08" title="Permalink"></a></header><div class="admonition-body"><p>You can also download this example as a <a href="../RICHOffloadGPU.ipynb">Jupyter notebook</a> and a plain <a href="../RICHOffloadGPU.jl">Julia source file</a>.</p></div></div><h4 id="Table-of-contents"><a class="docs-heading-anchor" href="#Table-of-contents">Table of contents</a><a id="Table-of-contents-1"></a><a class="docs-heading-anchor-permalink" href="#Table-of-contents" title="Permalink"></a></h4><ul><li><a href="#Loading-the-necessary-Julia-modules">Loading the necessary Julia modules</a></li><li><a href="#Choose-the-backend">Choose the backend</a></li><li><a href="#Detector,-physics-and-primary-generator">Detector, physics and primary generator</a></li><li><a href="#The-CPU-and-GPU-propagators">The CPU and GPU propagators</a></li><li><a href="#Define-the-Simulation-Data">Define the Simulation Data</a></li><li><a href="#Reconstruction-of-the-Cherenkov-angle">Reconstruction of the Cherenkov angle</a></li><li><a href="#Offloading-a-batch">Offloading a batch</a></li><li><a href="#Define-the-User-Actions">Define the User Actions</a></li><li><a href="#Create-the-Application">Create the Application</a></li><li><a href="#Configure-and-Initialize">Configure and Initialize</a></li><li><a href="#CPU-versus-GPU-propagation">CPU versus GPU propagation</a></li><li><a href="#Single-photon-resolution">Single photon resolution</a></li><li><a href="#Throughput-as-a-function-of-the-batch-size">Throughput as a function of the batch size</a></li></ul><h2 id="Loading-the-necessary-Julia-modules"><a class="docs-heading-anchor" href="#Loading-the-necessary-Julia-modules">Loading the necessary Julia modules</a><a id="Loading-the-necessary-Julia-modules-1"></a><a class="docs-heading-anchor-permalink" href="#Loading-the-necessary-Julia-modules" title="Permalink"></a></h2><p>In addition to the modules of the RICH example we load <code>KernelAbstractions</code> and a GPU package: <code>Metal</code> on macOS and <code>CUDA</code> elsewhere. Both can be loaded on machines without a GPU.</p><pre><code class="language-julia hljs">using Geant4
+using Geant4.SystemOfUnits
+using Geant4.PhysicalConstants
+using FHist, GeometryBasics, Printf
+using LinearAlgebra: dot, normalize          ## Geant4 also exports `dot`
+using KernelAbstractions
+if Sys.isapple()
+    using Metal
+else
+    using CUDA
+end
+using CairoMakie
+</code></pre><h2 id="Choose-the-backend"><a class="docs-heading-anchor" href="#Choose-the-backend">Choose the backend</a><a id="Choose-the-backend-1"></a><a class="docs-heading-anchor-permalink" href="#Choose-the-backend" title="Permalink"></a></h2><p>We use an NVIDIA GPU (CUDA) or an Apple GPU (Metal) if there is one, and otherwise the CPU backend of KernelAbstractions (with as many threads as Julia was started with, e.g. <code>julia -t auto</code>). GPUs use single precision: Apple GPUs do not support Float64, and most NVIDIA GPUs (except the data-centre ones, such as A100 or H100) are much slower in double precision. On those you can set <code>T = Float64</code>; the geometrical tolerance of <code>GPUTracer{T}</code> follows the precision.</p><pre><code class="language-julia hljs">backend, T = if @isdefined(CUDA) &amp;&amp; CUDA.functional()
+    CUDABackend(), Float32
+elseif @isdefined(Metal) &amp;&amp; Metal.functional()
+    MetalBackend(), Float32
+else
+    CPU(), Float64
+end
+@printf &quot;Backend: %s, precision: %s, Julia threads: %d\n&quot; backend T Threads.nthreads()</code></pre><pre><code class="nohighlight hljs">Backend: KernelAbstractions.POCL.POCLKernels.POCLBackend(), precision: Float64, Julia threads: 4
+</code></pre><h2 id="Detector,-physics-and-primary-generator"><a class="docs-heading-anchor" href="#Detector,-physics-and-primary-generator">Detector, physics and primary generator</a><a id="Detector,-physics-and-primary-generator-1"></a><a class="docs-heading-anchor-permalink" href="#Detector,-physics-and-primary-generator" title="Permalink"></a></h2><p>The detector, the physics list and the primary generator are the same as in the <a href="../RICH/#RICH-Detector">RICH Detector</a> example. The detector is defined in <a href="../RICHDetector/#RICHDetector.jl">RICHDetector.jl</a>.</p><pre><code class="language-julia hljs">include(joinpath(@__DIR__, &quot;RICHDetector.jl&quot;))
+rich = RICHDetector()
+
+struct RICHPhysics &lt;: G4VUserPhysicsList
+    function RICHPhysics(verbose)
+        pl = FTFP_BERT(verbose)
+        RegisterPhysics(pl, move!(G4OpticalPhysics(verbose)))
+        return pl
+    end
+end
+
+mutable struct RICHGunData &lt;: G4JLGeneratorData
+    gun::Union{Nothing, CxxPtr{G4ParticleGun}}
+    particles::Vector{String}
+    pmin::Float64
+    pmax::Float64
+    θmin::Float64
+    θmax::Float64
+    ##---the current track
+    particle::String
+    mass::Float64
+    momentum::Float64
+    direction::Vec3{Float64}
+end
+
+function RICHGunGenerator(; particles=[&quot;pi+&quot;, &quot;kaon+&quot;, &quot;proton&quot;], pmin=1GeV, pmax=80GeV, θmin=50mrad, θmax=250mrad)
+    data = RICHGunData(nothing, particles, pmin, pmax, θmin, θmax, &quot;&quot;, 0., 0., Vec3(0.,0.,1.))
+    function init(data::RICHGunData, ::Any)
+        data.gun = move!(G4ParticleGun())
+        SetParticlePosition(data.gun, G4ThreeVector(0, 0, 0))
+    end
+    function generate(evt::G4Event, data::RICHGunData)::Nothing
+        gun = data.gun
+        data.particle = rand(data.particles)
+        SetParticleByName(gun, data.particle)
+        data.mass = gun |&gt; GetParticleDefinition |&gt; GetPDGMass
+        data.momentum = data.pmin * (data.pmax/data.pmin)^rand()
+        cosθ = cos(data.θmin) - rand() * (cos(data.θmin) - cos(data.θmax))    ## uniform in solid angle
+        sinθ, ϕ = sqrt(1 - cosθ^2), 2π * rand()
+        data.direction = Vec3(sinθ * cos(ϕ), sinθ * sin(ϕ), cosθ)
+        SetParticleEnergy(gun, sqrt(data.momentum^2 + data.mass^2) - data.mass)    ## kinetic energy
+        SetParticleMomentumDirection(gun, G4ThreeVector(data.direction...))
+        GeneratePrimaryVertex(gun, CxxPtr(evt))
+    end
+    G4JLPrimaryGenerator(&quot;RICHGun&quot;, data; init_method=init, generate_method=generate)
+end
+generator = RICHGunGenerator()</code></pre><pre><code class="nohighlight hljs">Geant4.G4JLPrimaryGenerator{Main.var&quot;##142&quot;.RICHGunData}(&quot;RICHGun&quot;, Main.var&quot;##142&quot;.RICHGunData(nothing, [&quot;pi+&quot;, &quot;kaon+&quot;, &quot;proton&quot;], 1000.0, 80000.0, 0.05, 0.25, &quot;&quot;, 0.0, 0.0, [0.0, 0.0, 1.0]), Main.var&quot;##142&quot;.var&quot;#init#10&quot;(), Main.var&quot;##142&quot;.var&quot;#generate#11&quot;(), Geant4.G4JLGeneratorAction[])</code></pre><h2 id="The-CPU-and-GPU-propagators"><a class="docs-heading-anchor" href="#The-CPU-and-GPU-propagators">The CPU and GPU propagators</a><a id="The-CPU-and-GPU-propagators-1"></a><a class="docs-heading-anchor-permalink" href="#The-CPU-and-GPU-propagators" title="Permalink"></a></h2><p><a href="../RICHTracer/#RICHTracer.jl">RICHTracer.jl</a> defines the <code>OpticalPhoton</code> structure, the <code>RICHTracer</code> geometry constants and the CPU propagator <code>propagate(tracer, photon)</code>. <a href="../RICHTracerGPU/#RICHTracerGPU.jl">RICHTracerGPU.jl</a> defines the module <code>RICHGPU</code> with:</p><ul><li><code>GPUPhoton{T}</code>: the photon state in precision <code>T</code>, with its energy-dependent properties (the refractive index of the gas, the Rayleigh scattering length and the quantum efficiency), which we evaluate on the host</li><li><code>GPUTracer{T}</code>: the geometry constants in precision <code>T</code>, converted from a <code>RICHTracer</code></li><li><code>offload(backend, tracer, photons)</code>: copies the photons to the device, runs the kernel and returns a <code>GPUHit{T}</code> (detected or not, and the position) for each photon</li></ul><pre><code class="language-julia hljs">include(joinpath(@__DIR__, &quot;RICHTracer.jl&quot;))
+include(joinpath(@__DIR__, &quot;RICHTracerGPU.jl&quot;))
+using .RICHGPU
+tracer = RICHTracer(rich)
+gputracer = GPUTracer{T}(tracer)
+
+toGPU(::Type{T}, p::OpticalPhoton) where T = GPUPhoton{T}(p.position, p.direction, p.polarization, c4f10RIndex(p.energy),
+                                                          aerogelRayleigh(p.energy), quantumEfficiency(p.energy))
+floattype(::GPUTracer{T}) where T = T</code></pre><pre><code class="nohighlight hljs">floattype (generic function with 1 method)</code></pre><h2 id="Define-the-Simulation-Data"><a class="docs-heading-anchor" href="#Define-the-Simulation-Data">Define the Simulation Data</a><a id="Define-the-Simulation-Data-1"></a><a class="docs-heading-anchor-permalink" href="#Define-the-Simulation-Data" title="Permalink"></a></h2><p>The <code>Hit</code>, <code>Photon</code> and <code>Track</code> structures are the same as in the RICH example. The photons collected by the stacking action are appended to <code>pending</code>, together with the index of their event in <code>pendingEvent</code>, until a batch of <code>batchSize</code> events is complete. The <code>mode</code> selects the propagator: <code>:cpu</code>, <code>:gpu</code>, or <code>:collect</code> to only keep the photons in <code>sample</code>.</p><pre><code class="language-julia hljs">struct Hit
+    position::Point3{Float64}
+    energy::Float64
+    radiator::Symbol            ## :aerogel or :gas
+    primary::Bool               ## produced by the primary track
+end
+struct Photon
+    event::Int
+    θc::Float64                 ## reconstructed Cherenkov angle
+    radiator::Symbol
+    primary::Bool
+end
+struct Track
+    particle::String
+    mass::Float64
+    momentum::Float64
+    direction::Vec3{Float64}
+end
+
+mutable struct RICHSimData{B, GT} &lt;: G4JLSimulationData
+    ##---Configuration------------------------------------------------------------------------------
+    mode::Symbol                                   ## :cpu, :gpu or :collect
+    batchSize::Int                                 ## number of events per offload
+    backend::B                                     ## KernelAbstractions backend
+    tracer::RICHTracer                             ## CPU propagator
+    gputracer::GT                                  ## GPU propagator
+    opticalphoton::CxxPtr{G4ParticleDefinition}
+    ##---Batch data---------------------------------------------------------------------------------
+    pending::Vector{OpticalPhoton}                 ## photons waiting to be offloaded
+    pendingEvent::Vector{Int}                      ## index of the event of each pending photon
+    ##---Run data-----------------------------------------------------------------------------------
+    tracks::Vector{Track}
+    photons::Vector{Photon}
+    sample::Vector{OpticalPhoton}                  ## photons kept in :collect mode
+    nOffloads::Int                                 ## number of batches offloaded
+    nOptPhotons::Int                               ## number of photons offloaded
+    offloadTime::Float64                           ## time spent in the propagator (and the copies)
+end
+RICHSimData(backend, tracer, gputracer; mode=:gpu, batchSize=100) =
+    RICHSimData(mode, batchSize, backend, tracer, gputracer, CxxPtr{G4ParticleDefinition}(C_NULL),
+                OpticalPhoton[], Int[], Track[], Photon[], OpticalPhoton[], 0, 0, 0.)</code></pre><pre><code class="nohighlight hljs">Main.var&quot;##142&quot;.RICHSimData</code></pre><h2 id="Reconstruction-of-the-Cherenkov-angle"><a class="docs-heading-anchor" href="#Reconstruction-of-the-Cherenkov-angle">Reconstruction of the Cherenkov angle</a><a id="Reconstruction-of-the-Cherenkov-angle-1"></a><a class="docs-heading-anchor-permalink" href="#Reconstruction-of-the-Cherenkov-angle" title="Permalink"></a></h2><p>The same as in the RICH example.</p><pre><code class="language-julia hljs">function reflectionPoint(E, D, C, R)
+    a, b = E - C, D - C
+    â = normalize(a)
+    ĉ = normalize(b - dot(b, â) * â)
+    mirrorpoint(φ) = C + R * (cos(φ) * â + sin(φ) * ĉ)
+    function g(φ)                                  ## difference of the cosines of the two angles
+        M = mirrorpoint(φ)
+        m = normalize(M - C)
+        dot(normalize(E - M), m) - dot(normalize(D - M), m)
+    end
+    lo, hi = 0., atan(dot(b, ĉ), dot(b, â))
+    for _ in 1:40
+        mid = (lo + hi) / 2
+        g(mid) &lt; 0 ? (lo = mid) : (hi = mid)
+    end
+    return mirrorpoint((lo + hi) / 2)
+end
+
+function sphereIntersection(t, C, R)
+    b = dot(t, C)
+    return b + sqrt(b^2 - dot(C, C) + R^2)
+end
+
+const nGas = c4f10RIndex(3.2eV)
+
+function cherenkovAngle(det::RICHDetector, track::Track, hit::Hit)
+    t = track.direction
+    side = hit.position[2] &gt; 0 ? 1 : -1
+    C = Point3{Float64}(mirrorCentre(det, side)...)
+    zAerogel = det.aerogelZ + det.aerogelThickness
+    if hit.radiator == :aerogel
+        s = (det.aerogelZ + det.aerogelThickness/2) / t[3]
+    else
+        s = (zAerogel / t[3] + sphereIntersection(t, C, det.mirrorRadius)) / 2
+    end
+    E = Point3{Float64}(s * t)
+    M = reflectionPoint(E, hit.position, C, det.mirrorRadius)
+    d = normalize(M - E)
+    if hit.radiator == :aerogel
+        dt = Vec3(d[1], d[2], 0.) * nGas / det.aerogelRIndex
+        d = Vec3(dt[1], dt[2], sqrt(1 - dot(dt, dt)))
+    end
+    return acos(clamp(dot(d, t), -1., 1.))
+end
+
+function expectedAngle(n, m, p)
+    β = p / sqrt(p^2 + m^2)
+    nβ = n * β
+    return nβ &gt; 1 ? acos(1/nβ) : NaN
+end
+
+radiatorOf(det, zvertex) = zvertex &lt; det.aerogelZ + det.aerogelThickness + 1mm ? :aerogel : :gas</code></pre><pre><code class="nohighlight hljs">radiatorOf (generic function with 1 method)</code></pre><h2 id="Offloading-a-batch"><a class="docs-heading-anchor" href="#Offloading-a-batch">Offloading a batch</a><a id="Offloading-a-batch-1"></a><a class="docs-heading-anchor-permalink" href="#Offloading-a-batch" title="Permalink"></a></h2><p><code>flush!</code> propagates all the pending photons, with the CPU or the GPU propagator, and reconstructs the Cherenkov angle of the detected photons with the track of their event. With the GPU, the photons are first converted to <code>GPUPhoton{T}</code>, and the quantum efficiency is applied in the kernel.</p><pre><code class="language-julia hljs">function flush!(data::RICHSimData, det::RICHDetector)
+    isempty(data.pending) &amp;&amp; return
+    if data.mode == :collect
+        append!(data.sample, data.pending)
+    else
+        detected = Tuple{Int, Point3{Float64}}[]
+        data.offloadTime += @elapsed begin
+            if data.mode == :gpu
+                gpuphotons = [toGPU(floattype(data.gputracer), p) for p in data.pending]
+                for (i, h) in enumerate(offload(data.backend, data.gputracer, gpuphotons))
+                    h.detected &amp;&amp; push!(detected, (i, Point3{Float64}(h.position)))
+                end
+            else
+                for (i, p) in enumerate(data.pending)
+                    pos = propagate(data.tracer, p)
+                    isnothing(pos) || rand() &lt; quantumEfficiency(p.energy) &amp;&amp; push!(detected, (i, Point3{Float64}(pos)))
+                end
+            end
+        end
+        data.nOffloads += 1
+        data.nOptPhotons += length(data.pending)
+        for (i, pos) in detected
+            photon, ievt = data.pending[i], data.pendingEvent[i]
+            hit = Hit(pos, photon.energy, radiatorOf(det, photon.position[3]), photon.primary)
+            push!(data.photons, Photon(ievt, cherenkovAngle(det, data.tracks[ievt], hit), hit.radiator, hit.primary))
+        end
+    end
+    empty!(data.pending)
+    empty!(data.pendingEvent)
+    return
+end</code></pre><pre><code class="nohighlight hljs">flush! (generic function with 1 method)</code></pre><h2 id="Define-the-User-Actions"><a class="docs-heading-anchor" href="#Define-the-User-Actions">Define the User Actions</a><a id="Define-the-User-Actions-1"></a><a class="docs-heading-anchor-permalink" href="#Define-the-User-Actions" title="Permalink"></a></h2><ul><li><strong>stackaction</strong> collects the optical photons with the index of the current event, and kills them</li><li><strong>endevent</strong> stores the track of the event and offloads the pending photons when the batch is complete</li><li><strong>endrun</strong> offloads the photons of the last (incomplete) batch</li></ul><pre><code class="language-julia hljs">function beginrun(run::G4Run, app::G4JLApplication)::Nothing
+    data = getSIMdata(app)
+    data.opticalphoton = FindParticle(&quot;opticalphoton&quot;)
+    empty!(data.tracks)
+    empty!(data.photons)
+    empty!(data.sample)
+    data.nOffloads, data.nOptPhotons, data.offloadTime = 0, 0, 0.
+    return
+end
+
+toVec3(v) = Vec3{Float64}(x(v), y(v), z(v))
+function stackaction(track::G4Track, app::G4JLApplication)::G4ClassificationOfNewTrack
+    data = getSIMdata(app)
+    GetParticleDefinition(track) == data.opticalphoton || return fUrgent
+    push!(data.pending, OpticalPhoton(toVec3(GetPosition(track)[]), toVec3(GetMomentumDirection(track)[]),
+                                      toVec3(GetPolarization(track)[]), GetTotalEnergy(track),
+                                      GetGlobalTime(track), GetParentID(track) == 1))
+    push!(data.pendingEvent, length(data.tracks) + 1)
+    return fKill
+end
+
+function endevent(evt::G4Event, app::G4JLApplication)::Nothing
+    data = getSIMdata(app)
+    gen = app.generator.data
+    push!(data.tracks, Track(gen.particle, gen.mass, gen.momentum, gen.direction))
+    length(data.tracks) % data.batchSize == 0 &amp;&amp; flush!(data, app.detector)
+    return
+end
+
+function endrun(run::G4Run, app::G4JLApplication)::Nothing
+    flush!(getSIMdata(app), app.detector)
+    return
+end</code></pre><pre><code class="nohighlight hljs">endrun (generic function with 1 method)</code></pre><h2 id="Create-the-Application"><a class="docs-heading-anchor" href="#Create-the-Application">Create the Application</a><a id="Create-the-Application-1"></a><a class="docs-heading-anchor-permalink" href="#Create-the-Application" title="Permalink"></a></h2><pre><code class="language-julia hljs">app = G4JLApplication(; detector = rich,                              ## detector with parameters
+                        simdata = RICHSimData(backend, tracer, gputracer),  ## simulation data structure
+                        generator = generator,                        ## primary particle generator
+                        nthreads = 0,                                 ## # of threads (0 = no MT)
+                        physics_type = RICHPhysics,                   ## what physics list to instantiate
+                        stackaction_method = stackaction,             ## stacking action
+                        endeventaction_method = endevent,             ## end-event action
+                        beginrunaction_method = beginrun,             ## begin run action
+                        endrunaction_method = endrun                  ## end run action
+                      );</code></pre><pre><code class="nohighlight hljs">
+**************************************************************
+ Geant4 version Name: geant4-11-04-patch-01 [MT]   (13-March-2026)
+                       Copyright : Geant4 Collaboration
+                      References : NIM A 506 (2003), 250-303
+                                 : IEEE-TNS 53 (2006), 270-278
+                                 : NIM A 835 (2016), 186-225
+                             WWW : http://geant4.org/
+**************************************************************
+
+</code></pre><h2 id="Configure-and-Initialize"><a class="docs-heading-anchor" href="#Configure-and-Initialize">Configure and Initialize</a><a id="Configure-and-Initialize-1"></a><a class="docs-heading-anchor-permalink" href="#Configure-and-Initialize" title="Permalink"></a></h2><pre><code class="language-julia hljs">configure(app)
+initialize(app)</code></pre><pre><code class="nohighlight hljs">### Birks coefficients used in run time
+</code></pre><h2 id="CPU-versus-GPU-propagation"><a class="docs-heading-anchor" href="#CPU-versus-GPU-propagation">CPU versus GPU propagation</a><a id="CPU-versus-GPU-propagation-1"></a><a class="docs-heading-anchor-permalink" href="#CPU-versus-GPU-propagation" title="Permalink"></a></h2><p>We simulate 2000 events with pions, kaons and protons, offloading the photons in batches of 100 events, first to the CPU propagator and then to the GPU. A first short run compiles the code (including the GPU kernel) so that it is not included in the timing.</p><pre><code class="language-julia hljs">data = getSIMdata(app)
+for mode in (:cpu, :gpu)
+    data.mode = mode
+    beamOn(app, 10)
+end
+
+results = Dict{Symbol, Any}()
+for mode in (:cpu, :gpu)
+    data.mode = mode
+    t = @elapsed beamOn(app, 2000)
+    results[mode] = (tracks = copy(data.tracks), photons = copy(data.photons), time = t)
+    @printf &quot;%-4s: %5.1f s for %d events, %d photons offloaded in %d batches, %.2f s in the propagator, %d hits\n&quot; mode t length(data.tracks) data.nOptPhotons data.nOffloads data.offloadTime length(data.photons)
+end</code></pre><pre><code class="nohighlight hljs">cpu :   1.3 s for 2000 events, 799334 photons offloaded in 20 batches, 0.35 s in the propagator, 66662 hits
+gpu :   1.9 s for 2000 events, 804459 photons offloaded in 20 batches, 0.80 s in the propagator, 67077 hits
+</code></pre><p>The number of detected photons of the primary track per track above the Cherenkov threshold</p><pre><code class="language-julia hljs">for mode in (:cpu, :gpu), rad in (:aerogel, :gas)
+    (; tracks, photons) = results[mode]
+    sel = count(p -&gt; p.radiator == rad &amp;&amp; p.primary, photons)
+    nfired = count(t -&gt; expectedAngle(rad == :aerogel ? rich.aerogelRIndex : nGas, t.mass, t.momentum) &gt; 0, tracks)
+    @printf &quot;%-4s %-8s: %6.1f detected photons per track above threshold\n&quot; mode rad sel/max(nfired, 1)
+end</code></pre><pre><code class="nohighlight hljs">cpu  aerogel :   20.7 detected photons per track above threshold
+cpu  gas     :   27.6 detected photons per track above threshold
+gpu  aerogel :   20.5 detected photons per track above threshold
+gpu  gas     :   27.1 detected photons per track above threshold
+</code></pre><h2 id="Single-photon-resolution"><a class="docs-heading-anchor" href="#Single-photon-resolution">Single photon resolution</a><a id="Single-photon-resolution-1"></a><a class="docs-heading-anchor-permalink" href="#Single-photon-resolution" title="Permalink"></a></h2><p>The difference between the reconstructed and the expected Cherenkov angle of each photon of the primary track, for the CPU and GPU propagators, normalized to the number of tracks.</p><pre><code class="language-julia hljs">fig = Figure(size=(1200, 450))
+for (i, (rad, n)) in enumerate(((:aerogel, rich.aerogelRIndex), (:gas, nGas)))
+    ax = Axis(fig[1,i], title = rad == :aerogel ? &quot;Aerogel&quot; : &quot;C₄F₁₀&quot;,
+              xlabel=&quot;θc(reconstructed) - θc(expected) [mrad]&quot;, ylabel=&quot;Photons per track&quot;)
+    for (mode, color) in ((:cpu, :black), (:gpu, :red))
+        (; tracks, photons) = results[mode]
+        Δθ = Float64[]
+        for p in photons
+            (p.radiator == rad &amp;&amp; p.primary) || continue
+            t = tracks[p.event]
+            θ = expectedAngle(n, t.mass, t.momentum)
+            isnan(θ) || push!(Δθ, (p.θc - θ)/mrad)
+        end
+        core = filter(x -&gt; abs(x) &lt; 5, Δθ)
+        μ = sum(core)/length(core)
+        σ = sqrt(sum(abs2, core .- μ)/length(core))
+        h = Hist1D(Δθ; binedges=range(-10, 10, length=101)) * (1/length(tracks))
+        stephist!(ax, h, color=color, label=@sprintf(&quot;%s (core σ = %.2f mrad)&quot;, mode, σ))
+    end
+    axislegend(ax, position=:rt)
+end</code></pre><p><img src="../RICHOffloadGPU-29.png" alt/></p><h2 id="Throughput-as-a-function-of-the-batch-size"><a class="docs-heading-anchor" href="#Throughput-as-a-function-of-the-batch-size">Throughput as a function of the batch size</a><a id="Throughput-as-a-function-of-the-batch-size-1"></a><a class="docs-heading-anchor-permalink" href="#Throughput-as-a-function-of-the-batch-size" title="Permalink"></a></h2><p>We collect the photons of 3000 events (more than a million photons) and propagate samples of increasing size with the CPU propagator (one thread), the kernel on the CPU backend (with all the Julia threads), and the kernel on the chosen backend. The time includes the copies to and from the device, but not the conversion to <code>GPUPhoton</code>.</p><pre><code class="language-julia hljs">data.mode = :collect
+beamOn(app, 3000)
+sample = copy(data.sample)
+sizes = [10^k for k in 2:6 if 10^k &lt;= length(sample)]
+backends = [(&quot;CPU propagator&quot;, nothing, Float64), (&quot;KernelAbstractions CPU()&quot;, CPU(), Float64)]
+backend isa CPU || push!(backends, (&quot;KernelAbstractions $backend&quot;, backend, T))
+
+function timeit(f; repeat=3)
+    f()                                            ## compilation and warm-up
+    minimum(@elapsed(f()) for _ in 1:repeat)
+end
+
+fig = Figure(size=(800, 500))
+ax = Axis(fig[1,1], xlabel=&quot;Photons per batch&quot;, ylabel=&quot;Time per photon [ns]&quot;, xscale=log10, yscale=log10,
+          title=&quot;Propagation of optical photons&quot;)
+for (label, bk, FT) in backends
+    times = Float64[]
+    for n in sizes
+        photons = sample[1:n]
+        if isnothing(bk)
+            push!(times, timeit(() -&gt; foreach(p -&gt; propagate(tracer, p), photons)))
+        else
+            gp, gt = [toGPU(FT, p) for p in photons], GPUTracer{FT}(tracer)
+            push!(times, timeit(() -&gt; offload(bk, gt, gp)))
+        end
+    end
+    scatterlines!(ax, sizes, times ./ sizes .* 1e9, label=label)
+    @printf &quot;%-30s: %s ns/photon\n&quot; label join([@sprintf(&quot;%.0f&quot;, t/n*1e9) for (t, n) in zip(times, sizes)], &quot; &quot;)
+end
+axislegend(ax, position=:rt);</code></pre><pre><code class="nohighlight hljs">CPU propagator                : 535 405 377 391 393 ns/photon
+KernelAbstractions CPU()      : 619 179 197 185 196 ns/photon
+</code></pre><p>The figure shows the time per photon. The GPU needs large batches to beat the CPU.</p><p><img src="../RICHOffloadGPU-33.png" alt/></p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../RICHOffload/">« RICH Detector with Offloaded Optical Photons</a><a class="docs-footer-nextpage" href="../Scintillation/">Scintillation Example »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.20.0 on <span class="colophon-date" title="Tuesday 10 November 2026 20:12">Tuesday 10 November 2026</span>. Using Julia version 1.13.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

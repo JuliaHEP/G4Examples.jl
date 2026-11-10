@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="referrer" content="no-referrer"/><title>RICH Detector with Offloaded Optical Photons · G4Examples.jl</title><meta name="title" content="RICH Detector with Offloaded Optical Photons · G4Examples.jl"/><meta property="og:title" content="RICH Detector with Offloaded Optical Photons · G4Examples.jl"/><meta property="twitter:title" content="RICH Detector with Offloaded Optical Photons · G4Examples.jl"/><meta name="description" content="Documentation for G4Examples.jl."/><meta property="og:description" content="Documentation for G4Examples.jl."/><meta property="twitter:description" content="Documentation for G4Examples.jl."/><meta property="og:url" content="https://juliahep.github.io/G4Examples.jl/examples/RICHOffload/"/><meta property="twitter:url" content="https://juliahep.github.io/G4Examples.jl/examples/RICHOffload/"/><link rel="canonical" href="https://juliahep.github.io/G4Examples.jl/examples/RICHOffload/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.63.2/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">G4Examples.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Introduction</a></li><li><span class="tocitem">Basic</span><ul><li><a class="tocitem" href="../B1/">Basic/B1 Example</a></li><li><a class="tocitem" href="../B2a/">Basic/B2a Example</a></li><li><a class="tocitem" href="../B2aVis/">Basic/B2a Event Display Example</a></li><li><a class="tocitem" href="../B3a/">Basic/B3a Example</a></li><li><a class="tocitem" href="../B4a/">Basic/B4a Example</a></li></ul></li><li><span class="tocitem">Extended</span><ul><li><a class="tocitem" href="../GPS/">Extended/GPS Example</a></li><li><a class="tocitem" href="../OpNovice2/">OpNovice2 Example</a></li><li><a class="tocitem" href="../RE03/">Extended/RE03 Example</a></li><li><a class="tocitem" href="../Solids/">Geant4 Solids</a></li><li><a class="tocitem" href="../TestEm3/">Extended/TestEm3 Example</a></li><li><a class="tocitem" href="../field02/">Extended/field02 Example</a></li></ul></li><li><span class="tocitem">Advanced</span><ul><li><a class="tocitem" href="../TPCSim/">Simulation of the Aleph TPC</a></li><li><a class="tocitem" href="../UserLib/">Calling Custom C++ library</a></li><li><a class="tocitem" href="../JuliaAction/">Calling G4 actions in Julia</a></li><li><a class="tocitem" href="../HBC30/">CERN Liquid Hydrogen Bubble Chamber</a></li><li><a class="tocitem" href="../MedicalLinac/">Medical Linac</a></li><li><a class="tocitem" href="../RICH/">RICH Detector</a></li><li class="is-active"><a class="tocitem" href>RICH Detector with Offloaded Optical Photons</a><ul class="internal"><li><a class="tocitem" href="#Loading-the-necessary-Julia-modules"><span>Loading the necessary Julia modules</span></a></li><li><a class="tocitem" href="#Detector,-physics-and-primary-generator"><span>Detector, physics and primary generator</span></a></li><li><a class="tocitem" href="#The-external-photon-propagator"><span>The external photon propagator</span></a></li><li><a class="tocitem" href="#Define-the-Simulation-Data"><span>Define the Simulation Data</span></a></li><li><a class="tocitem" href="#Reconstruction-of-the-Cherenkov-angle"><span>Reconstruction of the Cherenkov angle</span></a></li><li><a class="tocitem" href="#Define-the-User-Actions"><span>Define the User Actions</span></a></li><li><a class="tocitem" href="#Create-the-Application"><span>Create the Application</span></a></li><li><a class="tocitem" href="#Configure-and-Initialize"><span>Configure and Initialize</span></a></li><li><a class="tocitem" href="#One-event-in-detail"><span>One event in detail</span></a></li><li><a class="tocitem" href="#Geant4-tracking-versus-offloading"><span>Geant4 tracking versus offloading</span></a></li><li><a class="tocitem" href="#Hits-on-the-photodetectors"><span>Hits on the photodetectors</span></a></li><li><a class="tocitem" href="#Single-photon-resolution"><span>Single photon resolution</span></a></li></ul></li><li><a class="tocitem" href="../RICHOffloadGPU/">RICH Detector with Optical Photons Offloaded to a GPU</a></li><li><a class="tocitem" href="../Scintillation/">Scintillation Example</a></li><li><a class="tocitem" href="../WaterPhantom/">Water Phantom with Scoring</a></li><li><a class="tocitem" href="../XrayTES/">X-ray TES Detector</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Advanced</a></li><li class="is-active"><a href>RICH Detector with Offloaded Optical Photons</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>RICH Detector with Offloaded Optical Photons</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/JuliaHEP/G4Examples.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/JuliaHEP/G4Examples.jl/blob/main/advanced/RICH/RICHOffload.lit" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="RICH-Detector-with-Offloaded-Optical-Photons"><a class="docs-heading-anchor" href="#RICH-Detector-with-Offloaded-Optical-Photons">RICH Detector with Offloaded Optical Photons</a><a id="RICH-Detector-with-Offloaded-Optical-Photons-1"></a><a class="docs-heading-anchor-permalink" href="#RICH-Detector-with-Offloaded-Optical-Photons" title="Permalink"></a></h1><p>This example is a variant of the <a href="../RICH/#RICH-Detector">RICH Detector</a> example. Most of the CPU time of that simulation goes into the tracking of the optical photons by Geant4. Here the optical photons are not tracked by Geant4 at all. They are collected as soon as they are created, and killed. At the end of the event the whole collection is handed to an external propagator that transports the photons to the photodetectors. This is the idea behind the GPU offloading of optical photons in projects like Opticks or Celeritas.</p><p>In this example the external propagator is a simple ray tracer written in Julia (<a href="../RICHTracer/#RICHTracer.jl">RICHTracer.jl</a>). It knows the geometry of this detector and implements the same optical physics as Geant4 (absorption, Rayleigh scattering, Fresnel refraction and reflection, and the mirror reflectivity). It does not call Geant4, and the photons are independent of each other, so it could run on several threads or on a GPU.</p><p>The example shows:</p><ul><li>collecting the optical photons in the <strong>stacking action</strong>, and killing them with <code>fKill</code></li><li>processing the collection of photons at the end of the event with code outside Geant4, which returns the hits on the photodetectors</li><li>comparing the hits and the reconstructed Cherenkov angles with the full Geant4 simulation (the same application can run in both modes)</li></ul><div class="admonition is-info" id="Note-that-20ed243c06bbdc08"><header class="admonition-header">Note that<a class="admonition-anchor" href="#Note-that-20ed243c06bbdc08" title="Permalink"></a></header><div class="admonition-body"><p>You can also download this example as a <a href="../RICHOffload.ipynb">Jupyter notebook</a> and a plain <a href="../RICHOffload.jl">Julia source file</a>.</p></div></div><h4 id="Table-of-contents"><a class="docs-heading-anchor" href="#Table-of-contents">Table of contents</a><a id="Table-of-contents-1"></a><a class="docs-heading-anchor-permalink" href="#Table-of-contents" title="Permalink"></a></h4><ul><li><a href="#Loading-the-necessary-Julia-modules">Loading the necessary Julia modules</a></li><li><a href="#Detector,-physics-and-primary-generator">Detector, physics and primary generator</a></li><li><a href="#The-external-photon-propagator">The external photon propagator</a></li><li><a href="#Define-the-Simulation-Data">Define the Simulation Data</a></li><li><a href="#Reconstruction-of-the-Cherenkov-angle">Reconstruction of the Cherenkov angle</a></li><li><a href="#Define-the-User-Actions">Define the User Actions</a></li><li><a href="#Create-the-Application">Create the Application</a></li><li><a href="#Configure-and-Initialize">Configure and Initialize</a></li><li><a href="#One-event-in-detail">One event in detail</a></li><li><a href="#Geant4-tracking-versus-offloading">Geant4 tracking versus offloading</a></li><li><a href="#Hits-on-the-photodetectors">Hits on the photodetectors</a></li><li><a href="#Single-photon-resolution">Single photon resolution</a></li></ul><h2 id="Loading-the-necessary-Julia-modules"><a class="docs-heading-anchor" href="#Loading-the-necessary-Julia-modules">Loading the necessary Julia modules</a><a id="Loading-the-necessary-Julia-modules-1"></a><a class="docs-heading-anchor-permalink" href="#Loading-the-necessary-Julia-modules" title="Permalink"></a></h2><pre><code class="language-julia hljs">using Geant4
+using Geant4.SystemOfUnits
+using Geant4.PhysicalConstants
+using FHist, GeometryBasics, Printf
+using LinearAlgebra: dot, normalize          ## Geant4 also exports `dot`
+using CairoMakie
+</code></pre><h2 id="Detector,-physics-and-primary-generator"><a class="docs-heading-anchor" href="#Detector,-physics-and-primary-generator">Detector, physics and primary generator</a><a id="Detector,-physics-and-primary-generator-1"></a><a class="docs-heading-anchor-permalink" href="#Detector,-physics-and-primary-generator" title="Permalink"></a></h2><p>The detector, the physics list and the primary generator are the same as in the <a href="../RICH/#RICH-Detector">RICH Detector</a> example. The detector is defined in <a href="../RICHDetector/#RICHDetector.jl">RICHDetector.jl</a>.</p><pre><code class="language-julia hljs">include(joinpath(@__DIR__, &quot;RICHDetector.jl&quot;))
+rich = RICHDetector()
+
+struct RICHPhysics &lt;: G4VUserPhysicsList
+    function RICHPhysics(verbose)
+        pl = FTFP_BERT(verbose)
+        RegisterPhysics(pl, move!(G4OpticalPhysics(verbose)))
+        return pl
+    end
+end
+
+mutable struct RICHGunData &lt;: G4JLGeneratorData
+    gun::Union{Nothing, CxxPtr{G4ParticleGun}}
+    particles::Vector{String}
+    pmin::Float64
+    pmax::Float64
+    θmin::Float64
+    θmax::Float64
+    ##---the current track
+    particle::String
+    mass::Float64
+    momentum::Float64
+    direction::Vec3{Float64}
+end
+
+function RICHGunGenerator(; particles=[&quot;pi+&quot;, &quot;kaon+&quot;, &quot;proton&quot;], pmin=1GeV, pmax=80GeV, θmin=50mrad, θmax=250mrad)
+    data = RICHGunData(nothing, particles, pmin, pmax, θmin, θmax, &quot;&quot;, 0., 0., Vec3(0.,0.,1.))
+    function init(data::RICHGunData, ::Any)
+        data.gun = move!(G4ParticleGun())
+        SetParticlePosition(data.gun, G4ThreeVector(0, 0, 0))
+    end
+    function generate(evt::G4Event, data::RICHGunData)::Nothing
+        gun = data.gun
+        data.particle = rand(data.particles)
+        SetParticleByName(gun, data.particle)
+        data.mass = gun |&gt; GetParticleDefinition |&gt; GetPDGMass
+        data.momentum = data.pmin * (data.pmax/data.pmin)^rand()
+        cosθ = cos(data.θmin) - rand() * (cos(data.θmin) - cos(data.θmax))    ## uniform in solid angle
+        sinθ, ϕ = sqrt(1 - cosθ^2), 2π * rand()
+        data.direction = Vec3(sinθ * cos(ϕ), sinθ * sin(ϕ), cosθ)
+        SetParticleEnergy(gun, sqrt(data.momentum^2 + data.mass^2) - data.mass)    ## kinetic energy
+        SetParticleMomentumDirection(gun, G4ThreeVector(data.direction...))
+        GeneratePrimaryVertex(gun, CxxPtr(evt))
+    end
+    G4JLPrimaryGenerator(&quot;RICHGun&quot;, data; init_method=init, generate_method=generate)
+end
+generator = RICHGunGenerator()</code></pre><pre><code class="nohighlight hljs">Geant4.G4JLPrimaryGenerator{Main.var&quot;##142&quot;.RICHGunData}(&quot;RICHGun&quot;, Main.var&quot;##142&quot;.RICHGunData(nothing, [&quot;pi+&quot;, &quot;kaon+&quot;, &quot;proton&quot;], 1000.0, 80000.0, 0.05, 0.25, &quot;&quot;, 0.0, 0.0, [0.0, 0.0, 1.0]), Main.var&quot;##142&quot;.var&quot;#init#10&quot;(), Main.var&quot;##142&quot;.var&quot;#generate#11&quot;(), Geant4.G4JLGeneratorAction[])</code></pre><h2 id="The-external-photon-propagator"><a class="docs-heading-anchor" href="#The-external-photon-propagator">The external photon propagator</a><a id="The-external-photon-propagator-1"></a><a class="docs-heading-anchor-permalink" href="#The-external-photon-propagator" title="Permalink"></a></h2><p>The ray tracer is defined in the <a href="../RICHTracer/#RICHTracer.jl">RICHTracer.jl</a> file. It defines the <code>OpticalPhoton</code> structure with the state of a photon at its creation (position, direction, polarization, energy, time, and whether it was produced by the primary track), and the function <code>propagate(tracer, photon)</code>, which returns the position of the photon on a photodetector, or <code>nothing</code> if the photon is lost. The <code>RICHTracer</code> structure holds the constants of the geometry, computed from the parameters of the detector.</p><pre><code class="language-julia hljs">include(joinpath(@__DIR__, &quot;RICHTracer.jl&quot;))
+tracer = RICHTracer(rich)</code></pre><pre><code class="nohighlight hljs">Main.var&quot;##142&quot;.RICHTracer([-1000.0, -1500.0, 1000.0], [1000.0, 1500.0, 2100.0], [-350.0, -350.0, 1000.0], [350.0, 350.0, 1050.0], 32.0, 1.03, 1000.0, 100000.0, 31.0, 2000.0, 0.9, ([0.0, 750.0, 10.0], [0.0, -750.0, 10.0]), ([-999.0, 36.0, 1550.0], [-999.0, -1499.0, 1550.0]), ([999.0, 1499.0, 2099.0], [999.0, -36.0, 2099.0]), ([-700.0, 450.0, 1000.0], [-700.0, -1350.0, 1000.0]), ([700.0, 1350.0, 1010.0], [700.0, -450.0, 1010.0]), 1051.0)</code></pre><h2 id="Define-the-Simulation-Data"><a class="docs-heading-anchor" href="#Define-the-Simulation-Data">Define the Simulation Data</a><a id="Define-the-Simulation-Data-1"></a><a class="docs-heading-anchor-permalink" href="#Define-the-Simulation-Data" title="Permalink"></a></h2><p>The <code>Hit</code>, <code>Photon</code> and <code>Track</code> structures are the same as in the RICH example. The simulation data has two new fields: <code>offload</code>, which selects the mode of the simulation, and <code>optphotons</code>, the optical photons collected during the event. We also count the photons and measure the time spent in the propagator.</p><pre><code class="language-julia hljs">struct Hit
+    position::Point3{Float64}
+    energy::Float64
+    radiator::Symbol            ## :aerogel or :gas
+    primary::Bool               ## produced by the primary track
+end
+struct Photon
+    event::Int
+    θc::Float64                 ## reconstructed Cherenkov angle
+    radiator::Symbol
+    primary::Bool
+end
+struct Track
+    particle::String
+    mass::Float64
+    momentum::Float64
+    direction::Vec3{Float64}
+end
+
+mutable struct RICHSimData &lt;: G4JLSimulationData
+    ##---Configuration------------------------------------------------------------------------------
+    offload::Bool                                  ## offload the optical photons (or track them in Geant4)
+    tracer::RICHTracer                             ## the external propagator
+    opticalphoton::CxxPtr{G4ParticleDefinition}
+    ##---Event data---------------------------------------------------------------------------------
+    optphotons::Vector{OpticalPhoton}              ## photons collected by the stacking action
+    hits::Vector{Hit}
+    ##---Run data-----------------------------------------------------------------------------------
+    tracks::Vector{Track}
+    photons::Vector{Photon}
+    eventHits::Vector{Vector{Hit}}                 ## hits of the first events, for the displays
+    nOptPhotons::Int                               ## number of photons offloaded
+    offloadTime::Float64                           ## time spent in the propagator
+    RICHSimData(tracer; offload=true) = new(offload, tracer, CxxPtr{G4ParticleDefinition}(C_NULL),
+                                            OpticalPhoton[], Hit[], Track[], Photon[], [], 0, 0.)
+end</code></pre><h2 id="Reconstruction-of-the-Cherenkov-angle"><a class="docs-heading-anchor" href="#Reconstruction-of-the-Cherenkov-angle">Reconstruction of the Cherenkov angle</a><a id="Reconstruction-of-the-Cherenkov-angle-1"></a><a class="docs-heading-anchor-permalink" href="#Reconstruction-of-the-Cherenkov-angle" title="Permalink"></a></h2><p>The reconstruction is the same as in the RICH example: for each hit we find the reflection point on the mirror, assuming that the photon was emitted in the middle of the radiator, and compute the angle between the photon and the track.</p><pre><code class="language-julia hljs">function reflectionPoint(E, D, C, R)
+    a, b = E - C, D - C
+    â = normalize(a)
+    ĉ = normalize(b - dot(b, â) * â)
+    mirrorpoint(φ) = C + R * (cos(φ) * â + sin(φ) * ĉ)
+    function g(φ)                                  ## difference of the cosines of the two angles
+        M = mirrorpoint(φ)
+        m = normalize(M - C)
+        dot(normalize(E - M), m) - dot(normalize(D - M), m)
+    end
+    lo, hi = 0., atan(dot(b, ĉ), dot(b, â))
+    for _ in 1:40
+        mid = (lo + hi) / 2
+        g(mid) &lt; 0 ? (lo = mid) : (hi = mid)
+    end
+    return mirrorpoint((lo + hi) / 2)
+end
+
+function sphereIntersection(t, C, R)
+    b = dot(t, C)
+    return b + sqrt(b^2 - dot(C, C) + R^2)
+end
+
+const nGas = c4f10RIndex(3.2eV)
+
+function cherenkovAngle(det::RICHDetector, track::Track, hit::Hit)
+    t = track.direction
+    side = hit.position[2] &gt; 0 ? 1 : -1
+    C = Point3{Float64}(mirrorCentre(det, side)...)
+    zAerogel = det.aerogelZ + det.aerogelThickness
+    if hit.radiator == :aerogel
+        s = (det.aerogelZ + det.aerogelThickness/2) / t[3]
+    else
+        s = (zAerogel / t[3] + sphereIntersection(t, C, det.mirrorRadius)) / 2
+    end
+    E = Point3{Float64}(s * t)
+    M = reflectionPoint(E, hit.position, C, det.mirrorRadius)
+    d = normalize(M - E)
+    if hit.radiator == :aerogel
+        dt = Vec3(d[1], d[2], 0.) * nGas / det.aerogelRIndex
+        d = Vec3(dt[1], dt[2], sqrt(1 - dot(dt, dt)))
+    end
+    return acos(clamp(dot(d, t), -1., 1.))
+end
+
+function expectedAngle(n, m, p)
+    β = p / sqrt(p^2 + m^2)
+    nβ = n * β
+    return nβ &gt; 1 ? acos(1/nβ) : NaN
+end</code></pre><pre><code class="nohighlight hljs">expectedAngle (generic function with 1 method)</code></pre><h2 id="Define-the-User-Actions"><a class="docs-heading-anchor" href="#Define-the-User-Actions">Define the User Actions</a><a id="Define-the-User-Actions-1"></a><a class="docs-heading-anchor-permalink" href="#Define-the-User-Actions" title="Permalink"></a></h2><ul><li><strong>stackaction</strong> is called by Geant4 for every new track, before it is pushed into the stack. In offload mode, an optical photon is copied into the <code>optphotons</code> vector and the action returns <code>fKill</code>, so Geant4 deletes the track without tracking it. All other tracks are classified as <code>fUrgent</code>, the default.</li><li><strong>stepaction</strong> is only needed when the photons are tracked by Geant4. It records the photons that enter a photodetector, as in the RICH example.</li><li><strong>endevent</strong> offloads the photons of the event: each photon is propagated by the tracer, and the photons that reach a photodetector are detected with a probability equal to the quantum efficiency. The resulting hits are then reconstructed in the same way in both modes.</li></ul><pre><code class="language-julia hljs">function beginrun(run::G4Run, app::G4JLApplication)::Nothing
+    data = getSIMdata(app)
+    data.opticalphoton = FindParticle(&quot;opticalphoton&quot;)
+    empty!(data.tracks)
+    empty!(data.photons)
+    empty!(data.eventHits)
+    data.nOptPhotons, data.offloadTime = 0, 0.
+    return
+end
+
+function beginevent(evt::G4Event, app::G4JLApplication)::Nothing
+    data = getSIMdata(app)
+    empty!(data.hits)
+    empty!(data.optphotons)
+    return
+end
+
+toVec3(v) = Vec3{Float64}(x(v), y(v), z(v))
+function stackaction(track::G4Track, app::G4JLApplication)::G4ClassificationOfNewTrack
+    data = getSIMdata(app)
+    (data.offload &amp;&amp; GetParticleDefinition(track) == data.opticalphoton) || return fUrgent
+    push!(data.optphotons, OpticalPhoton(toVec3(GetPosition(track)[]), toVec3(GetMomentumDirection(track)[]),
+                                         toVec3(GetPolarization(track)[]), GetTotalEnergy(track),
+                                         GetGlobalTime(track), GetParentID(track) == 1))
+    return fKill
+end
+
+radiatorOf(det, zvertex) = zvertex &lt; det.aerogelZ + det.aerogelThickness + 1mm ? :aerogel : :gas
+
+function stepaction(step::G4Step, app::G4JLApplication)::Nothing
+    data = getSIMdata(app)
+    data.offload &amp;&amp; return
+    track = GetTrack(step)
+    GetParticleDefinition(track) == data.opticalphoton || return
+    post = GetPostStepPoint(step)
+    GetStepStatus(post) == fGeomBoundary || return
+    pv = GetPhysicalVolume(post)
+    (pv == C_NULL || !startswith(String(GetName(pv)), &quot;Photodetector&quot;)) &amp;&amp; return
+    SetTrackStatus(track, fStopAndKill)
+    energy = GetTotalEnergy(track)
+    rand() &lt; quantumEfficiency(energy) || return
+    p = GetPosition(post)[]
+    radiator = radiatorOf(app.detector, z(GetVertexPosition(track)[]))
+    push!(data.hits, Hit(Point3{Float64}(x(p), y(p), z(p)), energy, radiator, GetParentID(track) == 1))
+    return
+end</code></pre><pre><code class="nohighlight hljs">stepaction (generic function with 1 method)</code></pre><p>The function that processes the photons of an event outside Geant4. It only uses the collected photons and the tracer, and fills a vector of hits.</p><pre><code class="language-julia hljs">function offload!(hits::Vector{Hit}, photons::Vector{OpticalPhoton}, tracer::RICHTracer, det::RICHDetector)
+    for photon in photons
+        p = propagate(tracer, photon)
+        isnothing(p) &amp;&amp; continue
+        rand() &lt; quantumEfficiency(photon.energy) || continue
+        push!(hits, Hit(Point3{Float64}(p...), photon.energy, radiatorOf(det, photon.position[3]), photon.primary))
+    end
+    return hits
+end
+
+function endevent(evt::G4Event, app::G4JLApplication)::Nothing
+    data = getSIMdata(app)
+    if data.offload
+        data.nOptPhotons += length(data.optphotons)
+        data.offloadTime += @elapsed offload!(data.hits, data.optphotons, data.tracer, app.detector)
+    end
+    gen = app.generator.data
+    track = Track(gen.particle, gen.mass, gen.momentum, gen.direction)
+    push!(data.tracks, track)
+    ievt = length(data.tracks)
+    for hit in data.hits
+        push!(data.photons, Photon(ievt, cherenkovAngle(app.detector, track, hit), hit.radiator, hit.primary))
+    end
+    length(data.eventHits) &lt; 100 &amp;&amp; push!(data.eventHits, copy(data.hits))
+    return
+end</code></pre><pre><code class="nohighlight hljs">endevent (generic function with 1 method)</code></pre><h2 id="Create-the-Application"><a class="docs-heading-anchor" href="#Create-the-Application">Create the Application</a><a id="Create-the-Application-1"></a><a class="docs-heading-anchor-permalink" href="#Create-the-Application" title="Permalink"></a></h2><pre><code class="language-julia hljs">app = G4JLApplication(; detector = rich,                              ## detector with parameters
+                        simdata = RICHSimData(tracer),                ## simulation data structure
+                        generator = generator,                        ## primary particle generator
+                        nthreads = 0,                                 ## # of threads (0 = no MT)
+                        physics_type = RICHPhysics,                   ## what physics list to instantiate
+                        stackaction_method = stackaction,             ## stacking action
+                        stepaction_method = stepaction,               ## step action method
+                        begineventaction_method = beginevent,         ## begin-event action
+                        endeventaction_method = endevent,             ## end-event action
+                        beginrunaction_method = beginrun              ## begin run action
+                      );</code></pre><pre><code class="nohighlight hljs">
+**************************************************************
+ Geant4 version Name: geant4-11-04-patch-01 [MT]   (13-March-2026)
+                       Copyright : Geant4 Collaboration
+                      References : NIM A 506 (2003), 250-303
+                                 : IEEE-TNS 53 (2006), 270-278
+                                 : NIM A 835 (2016), 186-225
+                             WWW : http://geant4.org/
+**************************************************************
+
+</code></pre><h2 id="Configure-and-Initialize"><a class="docs-heading-anchor" href="#Configure-and-Initialize">Configure and Initialize</a><a id="Configure-and-Initialize-1"></a><a class="docs-heading-anchor-permalink" href="#Configure-and-Initialize" title="Permalink"></a></h2><pre><code class="language-julia hljs">configure(app)
+initialize(app)</code></pre><pre><code class="nohighlight hljs">### Birks coefficients used in run time
+</code></pre><h2 id="One-event-in-detail"><a class="docs-heading-anchor" href="#One-event-in-detail">One event in detail</a><a id="One-event-in-detail-1"></a><a class="docs-heading-anchor-permalink" href="#One-event-in-detail" title="Permalink"></a></h2><p>We simulate one event with a 10 GeV/c pion in offload mode and look at the collected photons. We draw the geometry, the creation points of the photons, and the hits produced by the tracer (aerogel photons in orange, gas photons in blue).</p><pre><code class="language-julia hljs">data = getSIMdata(app)
+generator.data.particles, generator.data.pmin, generator.data.pmax = [&quot;pi+&quot;], 10GeV, 10GeV
+beamOn(app, 1)
+optphotons, hits = copy(data.optphotons), copy(data.hits)
+@printf &quot;Photons collected: %d (%d in the aerogel), hits: %d\n&quot; length(optphotons) count(p -&gt; radiatorOf(rich, p.position[3]) == :aerogel, optphotons) length(hits)
+
+fig = Figure(size=(1200, 900))
+s = LScene(fig[1,1])
+Geant4.draw!(s, GetWorldVolume())
+scatter!(s, [Point3{Float64}(p.position) for p in optphotons], markersize=2,
+         color=[radiatorOf(rich, p.position[3]) == :aerogel ? :orange : :blue for p in optphotons])
+scatter!(s, [h.position for h in hits], markersize=6, color=[h.radiator == :aerogel ? :orange : :blue for h in hits])</code></pre><p><img src="../RICHOffload-23.png" alt/></p><h2 id="Geant4-tracking-versus-offloading"><a class="docs-heading-anchor" href="#Geant4-tracking-versus-offloading">Geant4 tracking versus offloading</a><a id="Geant4-tracking-versus-offloading-1"></a><a class="docs-heading-anchor-permalink" href="#Geant4-tracking-versus-offloading" title="Permalink"></a></h2><p>We simulate 1000 events with pions, kaons and protons, first with the photons tracked by Geant4 and then with the photons offloaded to the tracer. We keep the results of each run.</p><pre><code class="language-julia hljs">generator.data.particles, generator.data.pmin, generator.data.pmax = [&quot;pi+&quot;, &quot;kaon+&quot;, &quot;proton&quot;], 1GeV, 80GeV
+results = Dict{Symbol, Any}()
+for mode in (:geant4, :offload)
+    data.offload = mode == :offload
+    t = @elapsed beamOn(app, 1000)
+    results[mode] = (tracks = copy(data.tracks), photons = copy(data.photons), eventHits = copy(data.eventHits), time = t)
+    @printf &quot;%-8s: %6.1f s for %d events, %d hits&quot; mode t length(data.tracks) length(data.photons)
+    mode == :offload &amp;&amp; @printf &quot; (%d photons offloaded, %.1f s in the tracer)&quot; data.nOptPhotons data.offloadTime
+    println()
+end</code></pre><pre><code class="nohighlight hljs">geant4  :    2.4 s for 1000 events, 32630 hits
+offload :    0.7 s for 1000 events, 33321 hits (403395 photons offloaded, 0.2 s in the tracer)
+</code></pre><p>The number of detected photons of the primary track per track above the Cherenkov threshold, for each radiator, should agree within the statistical fluctuations.</p><pre><code class="language-julia hljs">for mode in (:geant4, :offload), rad in (:aerogel, :gas)
+    (; tracks, photons) = results[mode]
+    sel = count(p -&gt; p.radiator == rad &amp;&amp; p.primary, photons)
+    nfired = count(t -&gt; expectedAngle(rad == :aerogel ? rich.aerogelRIndex : nGas, t.mass, t.momentum) &gt; 0, tracks)
+    @printf &quot;%-8s %-8s: %6.1f detected photons per track above threshold\n&quot; mode rad sel/max(nfired, 1)
+end</code></pre><pre><code class="nohighlight hljs">geant4   aerogel :   20.3 detected photons per track above threshold
+geant4   gas     :   26.7 detected photons per track above threshold
+offload  aerogel :   21.0 detected photons per track above threshold
+offload  gas     :   26.0 detected photons per track above threshold
+</code></pre><h2 id="Hits-on-the-photodetectors"><a class="docs-heading-anchor" href="#Hits-on-the-photodetectors">Hits on the photodetectors</a><a id="Hits-on-the-photodetectors-1"></a><a class="docs-heading-anchor-permalink" href="#Hits-on-the-photodetectors" title="Permalink"></a></h2><p>The hits of the first 20 events on the top photodetector plane, with Geant4 tracking (left) and offloading (right).</p><pre><code class="language-julia hljs">fig = Figure(size=(1200, 450))
+for (i, mode) in enumerate((:geant4, :offload))
+    ax = Axis(fig[1,i], title = mode == :geant4 ? &quot;Geant4 tracking&quot; : &quot;Offloaded&quot;, xlabel=&quot;x [cm]&quot;, ylabel=&quot;y [cm]&quot;, aspect=DataAspect())
+    xlims!(ax, -rich.detectorHalfX/cm, rich.detectorHalfX/cm)
+    ylims!(ax, rich.detectorY ./ cm |&gt; extrema)
+    for hits in results[mode].eventHits[1:20]
+        h = [hit for hit in hits if hit.position[2] &gt; 0]
+        isempty(h) &amp;&amp; continue
+        scatter!(ax, [p.position[1]/cm for p in h], [p.position[2]/cm for p in h], markersize=5,
+                 color=[p.radiator == :aerogel ? :orange : :blue for p in h])
+    end
+end</code></pre><p><img src="../RICHOffload-29.png" alt/></p><h2 id="Single-photon-resolution"><a class="docs-heading-anchor" href="#Single-photon-resolution">Single photon resolution</a><a id="Single-photon-resolution-1"></a><a class="docs-heading-anchor-permalink" href="#Single-photon-resolution" title="Permalink"></a></h2><p>The difference between the reconstructed and the expected Cherenkov angle of each photon of the primary track, for both modes. The distributions are normalized to the number of tracks.</p><pre><code class="language-julia hljs">fig = Figure(size=(1200, 450))
+for (i, (rad, n)) in enumerate(((:aerogel, rich.aerogelRIndex), (:gas, nGas)))
+    ax = Axis(fig[1,i], title = rad == :aerogel ? &quot;Aerogel&quot; : &quot;C₄F₁₀&quot;,
+              xlabel=&quot;θc(reconstructed) - θc(expected) [mrad]&quot;, ylabel=&quot;Photons per track&quot;)
+    for (mode, color) in ((:geant4, :black), (:offload, :red))
+        (; tracks, photons) = results[mode]
+        Δθ = Float64[]
+        for p in photons
+            (p.radiator == rad &amp;&amp; p.primary) || continue
+            t = tracks[p.event]
+            θ = expectedAngle(n, t.mass, t.momentum)
+            isnan(θ) || push!(Δθ, (p.θc - θ)/mrad)
+        end
+        core = filter(x -&gt; abs(x) &lt; 5, Δθ)
+        μ = sum(core)/length(core)
+        σ = sqrt(sum(abs2, core .- μ)/length(core))
+        h = Hist1D(Δθ; binedges=range(-10, 10, length=101)) * (1/length(tracks))
+        stephist!(ax, h, color=color, label=@sprintf(&quot;%s (core σ = %.2f mrad)&quot;, mode, σ))
+    end
+    axislegend(ax, position=:rt)
+end</code></pre><p><img src="../RICHOffload-31.png" alt/></p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../RICH/">« RICH Detector</a><a class="docs-footer-nextpage" href="../RICHOffloadGPU/">RICH Detector with Optical Photons Offloaded to a GPU »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.20.0 on <span class="colophon-date" title="Tuesday 10 November 2026 20:12">Tuesday 10 November 2026</span>. Using Julia version 1.13.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
