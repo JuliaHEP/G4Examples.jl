@@ -326,5 +326,6 @@ for (label, bk, FT) in backends
     scatterlines!(ax, sizes, times ./ sizes .* 1e9, label=label)
     @printf "%-30s: %s ns/photon\n" label join([@sprintf("%.0f", t/n*1e9) for (t, n) in zip(times, sizes)], " ")
 end
-axislegend(ax, position=:rt)
+axislegend(ax, position=:rt);
+
 display(fig)
