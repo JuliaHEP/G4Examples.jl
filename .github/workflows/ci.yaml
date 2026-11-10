@@ -36,3 +36,25 @@ jobs:
         with:
           prefix: xvfb-run
 
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write      # needed by julia-actions/cache to delete old caches
+      contents: write     # needed to push to the gh-pages branch
+      statuses: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v2
+      - name: Install dependencies
+        run: julia --project=docs -e 'using Pkg; Pkg.instantiate()'
+      - name: Run the examples, build and deploy the documentation
+        run: xvfb-run -s '-screen 0 1024x768x24' julia --project=docs docs/make.jl
+        env:
+          GKSwstype: "100"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}

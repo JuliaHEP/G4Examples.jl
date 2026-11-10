@@ -7,6 +7,7 @@ Examples for [Geant4.jl](https://github.com/JuliaHEP/Geant4.jl), the Julia bindi
 - `basic/`, `extended/`, `advanced/`: examples grouped like the Geant4 C++ distribution (B1–B4, TestEm3, RE03, GPS, Solids, field02, WaterPhantom, HBC30, Scintillation, AlephTPC, CustomLib, EmbedJulia). `extended/OpNovice/` is a work-in-progress port of opNovice2 (untracked, only a stub so far).
 - `src/G4Examples.jl`: an empty module. It exists only so the repo is a Julia package that `Pkg.test` can run.
 - `src/literate.jl`: an older helper that converts `<name>_lit.jl` into a notebook and script with Literate.jl.
+- `docs/`: Documenter site (deployed to GitHub Pages by the `docs` job of the CI). `docs/make.jl` copies every example directory flat into `docs/src/examples` (gitignored), runs each `.lit` with `docs/literate.jl` in a separate Julia process (Geant4 can be initialized only once per process), creates pages for files linked with `[file.jl](@ref)`, and calls `makedocs`/`deploydocs`. `docs/make.jl B1 RICH` builds only some examples. `docs/Project.toml` must list every package the examples use.
 - `test/runtests.jl`: runs each example script as a subprocess and checks the exit code. Only the `basic/` examples are enabled. The extended and advanced ones are commented out because they are slow or have heavy dependencies.
 - `.github/workflows/ci.yaml`: `julia-runtest` on Julia 1.10 and the latest 1.x, on Ubuntu, under `xvfb-run` (needed for GLMakie).
 
