@@ -78,6 +78,67 @@ rich = RICHDetector(aerogelRIndex = 1.01, mirrorReflectivity = 0.8)
 generator = RICHGunGenerator(particles = ["pi+", "kaon+"], pmin = 5GeV, pmax = 30GeV)
 ```
 
+## Offloading the optical photons
+
+`RICHOffload.lit` is a variant of the example in which Geant4 does not track the optical photons.
+
+1. The **stacking action** (`stackaction_method`) receives each new optical photon, copies its
+   position, direction, polarization, energy, time and origin (primary or not) into an
+   `OpticalPhoton` (a plain bits structure), and returns `fKill`.
+2. At the end of the event, the whole vector of photons is passed to `offload!`, which runs code
+   outside Geant4. Here this is the ray tracer in `RICHTracer.jl`, which propagates each photon
+   through this geometry. It implements absorption, Rayleigh scattering in the aerogel, Fresnel
+   reflection and refraction with polarization at the aerogel–gas boundaries, mirror
+   reflectivity and absorption at surfaces without a refractive index, using the same algorithms
+   as the Geant4 optical processes. The photons that reach a photodetector pass the
+   quantum-efficiency test and become hits.
+3. The hits are reconstructed as in `RICH.lit`. The same application can also run with the
+   photons tracked by Geant4 (`data.offload = false`), so the script runs both modes and compares
+   them.
+
+With 1000 events the two modes give the same photon yields and the same single-photon
+resolutions. When the same Geant4-generated photons are tracked by Geant4 and propagated with the
+tracer, the numbers of detected photons agree within about 1%. The offloaded run is about 3 times
+faster (0.4 s instead of 1.4 s for 1000 events, of which 0.1 s is spent in the tracer).
+
+The interface between Geant4 and the external code is just the `Vector{OpticalPhoton}`. To use
+another propagator (on several threads or on a GPU, or writing the photons to a file), replace
+`offload!`.
+
+## Offloading the optical photons to a GPU
+
+`RICHOffloadGPU.lit` propagates the photons with `RICHTracerGPU.jl`, a port of the tracer to a
+[KernelAbstractions.jl](https://github.com/JuliaGPU/KernelAbstractions.jl) kernel with one thread
+per photon. It uses `CUDABackend()` on NVIDIA GPUs or `MetalBackend()` on Apple GPUs, in Float32,
+and otherwise the `CPU()` backend in Float64 on Julia threads. On data-centre NVIDIA GPUs with fast
+double precision (A100, H100) you can set `T = Float64`.
+
+- The structures are parametric in the floating point type (Apple GPUs do not support Float64).
+- The energy-dependent properties (gas index, Rayleigh length, quantum efficiency) are evaluated
+  on the host and copied with each photon.
+- The random numbers come from a counter-based generator (Philox2x32-10). Its key is a seed for the
+  batch and its stream is the index of the photon, so the kernel keeps no generator state in memory.
+- The photons of `batchSize` events (100 by default, about 40 000 photons) are offloaded together.
+  The end-of-run action offloads the last batch.
+
+The script compares the CPU and GPU propagators, which give the same photon yields and
+resolutions, and measures the time per photon as a function of the batch size. On an Apple M2:
+
+| Photons per batch | 10² | 10³ | 10⁴ | 10⁵ | 10⁶ |
+|---|---|---|---|---|---|
+| CPU propagator (1 thread) | 455 ns | 336 ns | 281 ns | 294 ns | 297 ns |
+| Kernel, `CPU()` (8 threads) | 505 ns | 170 ns | 87 ns | 78 ns | 73 ns |
+| Kernel, `MetalBackend()` | 10956 ns | 1640 ns | 306 ns | 66 ns | 59 ns |
+
+The GPU is faster only above about 10⁴ photons per batch. For this small detector Geant4 still
+dominates the total time, because it creates every photon as a `G4Track` before it is killed.
+
+Run it with several threads to make use of the `CPU()` backend:
+
+```sh
+julia --project=. -t auto advanced/RICH/RICHOffloadGPU.jl
+```
+
 ## Simplifications
 
 - One particle per event, and no magnetic field.
@@ -96,6 +157,10 @@ generator = RICHGunGenerator(particles = ["pi+", "kaon+"], pmin = 5GeV, pmax = 3
 - `RICH.lit`: Literate source of the example (source of truth)
 - `RICH.jl`, `RICH.ipynb`: script and notebook generated from `RICH.lit`
 - `RICHDetector.jl`: detector parameters, materials, optical properties and geometry
+- `RICHOffload.lit`, `RICHOffload.jl`, `RICHOffload.ipynb`: variant with the optical photons offloaded
+- `RICHOffloadGPU.lit`, `RICHOffloadGPU.jl`, `RICHOffloadGPU.ipynb`: variant with the photons offloaded to a GPU in batches
+- `RICHTracerGPU.jl`: KernelAbstractions version of the tracer (module `RICHGPU`)
+- `RICHTracer.jl`: stand-alone ray tracer of optical photons for this geometry, used by `RICHOffload`
 - `Schematic-RICH-detector.png`: schematic of the detector
 
 After you edit `RICH.lit`, regenerate the script and the notebook:
