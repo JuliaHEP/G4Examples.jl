@@ -59,6 +59,13 @@ mirrorCentre(det::RICHDetector, side) = (0., side * det.mirrorCentreY, det.detec
 # Visualization attributes (colour and transparency) of a logical volume
 setVis(lv, r, g, b, a=1.; visible=true) = SetVisAttributes(lv, G4VisAttributes(visible, G4Colour(r, g, b, a)))
 
+# Optical properties of the materials, as functions of the photon energy, with the names of the
+# Geant4 material properties. They are used to build the material properties tables, and by the
+# external propagators of the photons (RICHTracer.jl).
+richOptics(det) = Dict("C4F10"   => ("RINDEX" => c4f10RIndex, "ABSLENGTH" => E -> 100m),
+                       "Aerogel" => ("RINDEX" => E -> det.aerogelRIndex, "ABSLENGTH" => E -> 1m,
+                                     "RAYLEIGH" => aerogelRayleigh))
+
 function buildMPT(props::Pair...)
     mpt = G4MaterialPropertiesTable()
     for (name, f) in props
@@ -89,10 +96,9 @@ function richConstruct(det::RICHDetector)::CxxPtr{G4VPhysicalVolume}
     end
     c4f10 = G4Material!GetMaterial("C4F10")
     aerogel = G4Material!GetMaterial("Aerogel")
-    SetMaterialPropertiesTable(c4f10, move!(buildMPT("RINDEX" => c4f10RIndex, "ABSLENGTH" => E -> 100m)))
-    SetMaterialPropertiesTable(aerogel, move!(buildMPT("RINDEX" => E -> det.aerogelRIndex,
-                                                       "ABSLENGTH" => E -> 1m,
-                                                       "RAYLEIGH" => aerogelRayleigh)))
+    optics = richOptics(det)
+    SetMaterialPropertiesTable(c4f10, move!(buildMPT(optics["C4F10"]...)))
+    SetMaterialPropertiesTable(aerogel, move!(buildMPT(optics["Aerogel"]...)))
 
     #---World and gas vessel-----------------------------------------------------------------------
     worldLV = G4LogicalVolume(G4Box("World", worldHalfSize, worldHalfSize, worldHalfSize), air, "World")
@@ -122,26 +128,31 @@ function richConstruct(det::RICHDetector)::CxxPtr{G4VPhysicalVolume}
     setVis(aerogelLV, 1.0, 0.9, 0.2, 0.8)
     G4PVPlacement(nothing, toVessel(0, 0, aerogelZ + aerogelThickness/2), aerogelLV, "Aerogel", vesselLV, false, 0, checkOverlaps)
 
-    #---Mirrors: spherical shells cut by a box to the top (or bottom) half of the vessel----------
+    #---Mirrors: segments of spherical shells covering the top (or bottom) half of the vessel------
+    #   The polar axis of each G4Sphere is rotated to the y axis: the θ range then limits y (the
+    #   cones cut the shell at y = constant) and the ϕ range (around the y axis) limits x, with the
+    #   mirror facing the beam (ϕ = 270°, towards -z in the local frame of the sphere).
     mirrorReflector = G4OpticalSurface("MirrorSurface")
     SetType(mirrorReflector, dielectric_metal)
     SetModel(mirrorReflector, unified)
     SetFinish(mirrorReflector, polished)
     SetMaterialPropertiesTable(mirrorReflector, move!(buildMPT("REFLECTIVITY" => E -> det.mirrorReflectivity)))
     yGap = beamPipeRadius + beamPipeThickness + 5mm
-    zmin = vesselZ[1] + vesselHalfZ                        ## the mirrors are in the back half of the vessel
+    rOut = mirrorRadius + mirrorThickness
+    rot = G4RotationMatrix()
+    rotateX(rot, -π/2)                                     ## local z → global y, local y → global -z
     for (side, name) in ((1, "MirrorTop"), (-1, "MirrorBottom"))
         cx, cy, cz = mirrorCentre(det, side)
-        ## cut box in global coordinates and its position relative to the centre of curvature
-        bhx, bhy, bhz = vesselHalfX - 1mm, (vesselHalfY - 1mm - yGap)/2, (vesselZ[2] - 1mm - zmin)/2
-        bx, by, bz = 0., side * (yGap + bhy), zmin + bhz
-        shell = G4Sphere(name * "Shell", mirrorRadius, mirrorRadius + mirrorThickness, 0, 2π, 0, π/2)
-        cut = G4Box(name * "Cut", bhx, bhy, bhz)
-        mirrorS = G4IntersectionSolid(name, move!(shell), move!(cut),
-                                      G4Transform3D(G4RotationMatrix(), G4ThreeVector(bx - cx, by - cy, bz - cz)))
+        ## y range of the mirror relative to the centre of curvature: the reflecting surface reaches
+        ## the gap around the beam pipe, the outer surface stays within the vessel (the edges of
+        ## the mirror are cones through the centre of curvature, perpendicular to its surface)
+        cgap, cwall = (side * yGap - cy)/mirrorRadius, (side * (vesselHalfY - 1mm) - cy)/rOut
+        θ₀, θ₁ = acos(max(cgap, cwall)), acos(min(cgap, cwall))
+        Δϕ = 2asin((vesselHalfX - 1mm)/rOut)
+        mirrorS = G4Sphere(name, mirrorRadius, rOut, 3π/2 - Δϕ/2, Δϕ, θ₀, θ₁ - θ₀)
         mirrorLV = G4LogicalVolume(mirrorS, glass, name)
         setVis(mirrorLV, 0.8, 0.8, 0.8, 0.5)
-        G4PVPlacement(nothing, toVessel(cx, cy, cz), mirrorLV, name, vesselLV, false, 0, checkOverlaps)
+        G4PVPlacement(G4Transform3D(rot, toVessel(cx, cy, cz)), mirrorLV, name, vesselLV, false, 0, checkOverlaps)
         G4LogicalSkinSurface(name * "Surface", CxxPtr(mirrorLV), CxxPtr(mirrorReflector))
     end
 
