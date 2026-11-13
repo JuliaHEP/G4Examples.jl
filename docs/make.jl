@@ -9,6 +9,7 @@ const rootdir     = dirname(@__DIR__)
 const examplesdir = joinpath(@__DIR__, "src", "examples")
 const sections    = ["basic" => "Basic", "extended" => "Extended", "advanced" => "Advanced"]
 const selected    = ARGS
+const excluded    = ["RICHOffload", "RICHOffloadGPU"]    # need Geom4hep.jl, which is not yet registered
 
 #---Copy the example directories into docs/src/examples--------------------------------------------
 #   The pages, the files that the examples include, their images, notebooks and scripts all end up
@@ -23,7 +24,7 @@ for (section, _) in sections, dir in readdir(joinpath(rootdir, section); join = 
         (startswith(f, ".") || f == "README.md") && continue
         cp(joinpath(dir, f), joinpath(examplesdir, f); force = true)
         sources[f] = joinpath(dir, f)
-        endswith(f, ".lit") && push!(litfiles[section], joinpath(dir, f))
+        endswith(f, ".lit") && !(splitext(f)[1] in excluded) && push!(litfiles[section], joinpath(dir, f))
     end
 end
 pagename(lit) = splitext(basename(lit))[1]

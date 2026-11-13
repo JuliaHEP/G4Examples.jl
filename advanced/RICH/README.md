@@ -32,9 +32,10 @@ The detector is defined in `RICHDetector.jl`. All dimensions are keyword paramet
 - **Aerogel**: a 5 cm tile at the entrance of the vessel, with a hole for the beam pipe (a
   `G4SubtractionSolid`). Rayleigh scattering length λ⁴/C, about 5 cm at 400 nm.
 - **Mirrors**: two spherical mirrors (top and bottom) with R = 2 m and 90% reflectivity. Each is
-  a spherical shell cut by a box (a `G4IntersectionSolid`), with a polished `dielectric_metal`
-  optical surface. The centres of curvature are at y = ±75 cm, so each mirror is tilted and
-  focuses its light onto the photodetector plane of the same half.
+  a segment of a spherical shell (a `G4Sphere` with θ and ϕ ranges, its polar axis rotated to the y
+  axis) covering one half of the vessel, with a polished `dielectric_metal` optical surface. The
+  centres of curvature are at y = ±75 cm, so each mirror is tilted and focuses its light onto the
+  photodetector plane of the same half.
 - **Photodetectors**: two planes at z ≈ 1 m, between |y| = 45 cm and 135 cm, outside the
   acceptance. Their quantum efficiency peaks at 25% around 400 nm.
 
@@ -86,20 +87,38 @@ generator = RICHGunGenerator(particles = ["pi+", "kaon+"], pmin = 5GeV, pmax = 3
    position, direction, polarization, energy, time and origin (primary or not) into an
    `OpticalPhoton` (a plain bits structure), and returns `fKill`.
 2. At the end of the event, the whole vector of photons is passed to `offload!`, which runs code
-   outside Geant4. Here this is the ray tracer in `RICHTracer.jl`, which propagates each photon
-   through this geometry. It implements absorption, Rayleigh scattering in the aerogel, Fresnel
-   reflection and refraction with polarization at the aerogel–gas boundaries, mirror
-   reflectivity and absorption at surfaces without a refractive index, using the same algorithms
-   as the Geant4 optical processes. The photons that reach a photodetector pass the
+   outside Geant4. Here this is the ray tracer in `RICHTracer.jl`. It implements absorption,
+   Rayleigh scattering, Fresnel reflection and refraction with polarization, mirror reflectivity,
+   detection and absorption at surfaces without a refractive index, using the same algorithms as
+   the Geant4 optical processes. The photons that reach a photodetector pass the
    quantum-efficiency test and become hits.
 3. The hits are reconstructed as in `RICH.lit`. The same application can also run with the
    photons tracked by Geant4 (`data.offload = false`), so the script runs both modes and compares
    them.
 
-With 1000 events the two modes give the same photon yields and the same single-photon
-resolutions. When the same Geant4-generated photons are tracked by Geant4 and propagated with the
-tracer, the numbers of detected photons agree within about 1%. The offloaded run is about 3 times
-faster (0.4 s instead of 1.4 s for 1000 events, of which 0.1 s is spent in the tracer).
+The tracer gets the geometry from [Geom4hep.jl](https://github.com/peremato/Geom4hep), a geometry
+package written in Julia. After the initialization of the application, `exportGDML()` writes the
+Geant4 geometry to a GDML file with the Geant4 GDML writer, and Geom4hep reads it and builds a flat
+geometry model, which provides the navigation: the volume of a point, the distance to the next
+boundary and the normal of a surface. The tracer adds:
+
+- the optical properties of the materials, from `richOptics(det)` in `RICHDetector.jl`, the same
+  functions used to build the Geant4 material properties tables. They are tabulated on the same
+  energy grid and interpolated linearly, as in Geant4.
+- the volumes with special surfaces, by name: the two mirrors (with their reflectivity) and the
+  photodetectors.
+
+Nothing in the tracer is specific to this detector, so it can be used with other geometries.
+Geom4hep is not yet registered: add it with
+`julia --project=. -e 'using Pkg; Pkg.add(url="https://github.com/peremato/Geom4hep.git")'`.
+For the same reason the offload examples are not run by the tests nor included in the documentation.
+
+When the same Geant4-generated photons are tracked by Geant4 and propagated with the tracer, the
+expected numbers of hits agree within 0.1% (50 879 and 50 866 for 1500 events, with the
+detection probability of each photon in the tracer estimated from 20 propagations). The two modes
+give the same photon yields and the same single-photon resolutions (1.01 mrad for the aerogel and
+1.96 mrad for the gas, within 0.01 mrad). The offloaded run takes 0.7 s instead of 1.3 s for 1000
+events, of which 0.4 s is spent in the tracer.
 
 The interface between Geant4 and the external code is just the `Vector{OpticalPhoton}`. To use
 another propagator (on several threads or on a GPU, or writing the photons to a file), replace
@@ -107,33 +126,42 @@ another propagator (on several threads or on a GPU, or writing the photons to a 
 
 ## Offloading the optical photons to a GPU
 
-`RICHOffloadGPU.lit` propagates the photons with `RICHTracerGPU.jl`, a port of the tracer to a
+`RICHOffloadGPU.lit` runs the same propagator in a
 [KernelAbstractions.jl](https://github.com/JuliaGPU/KernelAbstractions.jl) kernel with one thread
-per photon. It uses `CUDABackend()` on NVIDIA GPUs or `MetalBackend()` on Apple GPUs, in Float32,
-and otherwise the `CPU()` backend in Float64 on Julia threads. On data-centre NVIDIA GPUs with fast
-double precision (A100, H100) you can set `T = Float64`.
+per photon (`RICHTracerGPU.jl`), including the Geom4hep navigation: the tracer and the geometry
+model are copied to the device with `Adapt.adapt`. It uses `CUDABackend()` on NVIDIA GPUs or
+`MetalBackend()` on Apple GPUs, in Float32, and otherwise propagates the photons with Julia threads
+in Float64. On data-centre NVIDIA GPUs with fast double precision (A100, H100) you can set
+`T = Float64`.
 
-- The structures are parametric in the floating point type (Apple GPUs do not support Float64).
-- The energy-dependent properties (gas index, Rayleigh length, quantum efficiency) are evaluated
-  on the host and copied with each photon.
+- The tracer is parametric in the floating point type (Apple GPUs do not support Float64).
+  Geom4hep uses a larger geometrical tolerance in single precision.
 - The random numbers come from a counter-based generator (Philox2x32-10). Its key is a seed for the
-  batch and its stream is the index of the photon, so the kernel keeps no generator state in memory.
+  batch and its stream is the index of the photon, so the kernel keeps no generator state in memory,
+  and the results of a photon are the same on the CPU and on the GPU.
 - The photons of `batchSize` events (100 by default, about 40 000 photons) are offloaded together.
-  The end-of-run action offloads the last batch.
+  The end-of-run action offloads the last batch. Larger batches are split into kernel launches of
+  at most 200 000 photons: macOS aborts or hangs long-running kernels on the GPU that drives the
+  display.
 
 The script compares the CPU and GPU propagators, which give the same photon yields and
 resolutions, and measures the time per photon as a function of the batch size. On an Apple M2:
 
 | Photons per batch | 10² | 10³ | 10⁴ | 10⁵ | 10⁶ |
 |---|---|---|---|---|---|
-| CPU propagator (1 thread) | 455 ns | 336 ns | 281 ns | 294 ns | 297 ns |
-| Kernel, `CPU()` (8 threads) | 505 ns | 170 ns | 87 ns | 78 ns | 73 ns |
-| Kernel, `MetalBackend()` | 10956 ns | 1640 ns | 306 ns | 66 ns | 59 ns |
+| CPU propagator (1 thread) | 1412 ns | 1087 ns | 1112 ns | 1095 ns | 1113 ns |
+| CPU propagator (8 threads) | 1268 ns | 369 ns | 249 ns | 218 ns | 208 ns |
+| GPU kernel, `MetalBackend()` | 35045 ns | 2028 ns | 414 ns | 280 ns | 273 ns |
 
-The GPU is faster only above about 10⁴ photons per batch. For this small detector Geant4 still
-dominates the total time, because it creates every photon as a `G4Track` before it is killed.
+The general navigation of Geom4hep is about 3.5 times slower than the hand-written intersections of
+the first version of the tracer (about 300 ns per photon on one thread and 60 ns on the GPU). A
+photon from the gas takes about 600 ns on one thread, one from the aerogel about 1400 ns: it
+scatters and crosses the faces of the tile several times, and each time it leaves the tile it has to
+be located again among the volumes of the vessel. Describing the mirrors as `G4Sphere` segments
+instead of spherical shells intersected with boxes halved the time of the gas photons. The GPU is
+faster than one thread above about 10⁴ photons per batch, and a bit slower than eight threads.
 
-Run it with several threads to make use of the `CPU()` backend:
+Run it with several threads:
 
 ```sh
 julia --project=. -t auto advanced/RICH/RICHOffloadGPU.jl
@@ -159,8 +187,10 @@ julia --project=. -t auto advanced/RICH/RICHOffloadGPU.jl
 - `RICHDetector.jl`: detector parameters, materials, optical properties and geometry
 - `RICHOffload.lit`, `RICHOffload.jl`, `RICHOffload.ipynb`: variant with the optical photons offloaded
 - `RICHOffloadGPU.lit`, `RICHOffloadGPU.jl`, `RICHOffloadGPU.ipynb`: variant with the photons offloaded to a GPU in batches
-- `RICHTracerGPU.jl`: KernelAbstractions version of the tracer (module `RICHGPU`)
-- `RICHTracer.jl`: stand-alone ray tracer of optical photons for this geometry, used by `RICHOffload`
+- `RICHTracer.jl`: stand-alone propagator of optical photons (module `RICHOptics`) using the Geom4hep
+  navigation, and `exportGDML`/`RICHTracer` to build it for this detector
+- `RICHTracerGPU.jl`: kernel, random number generator and batch transfer to run the propagator on a
+  GPU (module `RICHGPU`)
 - `Schematic-RICH-detector.png`: schematic of the detector
 
 After you edit `RICH.lit`, regenerate the script and the notebook:

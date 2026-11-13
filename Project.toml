@@ -4,6 +4,7 @@ version = "0.2.0"
 authors = ["Pere Mato <pere.mato@cern.ch>"]
 
 [deps]
+Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 DisplayAs = "0b91fe84-8a4c-11e9-3e1d-67c38462b6d6"
@@ -24,6 +25,7 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Rotations = "6038ab10-8711-5258-84ad-4b1120ba62dc"
 
 [compat]
+Adapt = "4"
 CUDA = "5, 6"
 FHist = "0.11"
 Geant4 = "0.3.2"

@@ -71,12 +71,6 @@ generator = RICHGunGenerator()
 include(joinpath(@__DIR__, "RICHTracer.jl"))
 include(joinpath(@__DIR__, "RICHTracerGPU.jl"))
 using .RICHGPU
-tracer = RICHTracer(rich)
-gputracer = GPUTracer{T}(tracer)
-
-toGPU(::Type{T}, p::OpticalPhoton) where T = GPUPhoton{T}(p.position, p.direction, p.polarization, c4f10RIndex(p.energy),
-                                                          aerogelRayleigh(p.energy), quantumEfficiency(p.energy))
-floattype(::GPUTracer{T}) where T = T
 
 struct Hit
     position::Point3{Float64}
@@ -97,13 +91,13 @@ struct Track
     direction::Vec3{Float64}
 end
 
-mutable struct RICHSimData{B, GT} <: G4JLSimulationData
+mutable struct RICHSimData{B} <: G4JLSimulationData
     ##---Configuration------------------------------------------------------------------------------
     mode::Symbol                                   ## :cpu, :gpu or :collect
     batchSize::Int                                 ## number of events per offload
     backend::B                                     ## KernelAbstractions backend
-    tracer::RICHTracer                             ## CPU propagator
-    gputracer::GT                                  ## GPU propagator
+    tracer::Any                                    ## CPU propagator (OpticalTracer{Float64})
+    gputracer::Any                                 ## GPU propagator (OpticalTracer{T} on the device)
     opticalphoton::CxxPtr{G4ParticleDefinition}
     ##---Batch data---------------------------------------------------------------------------------
     pending::Vector{OpticalPhoton}                 ## photons waiting to be offloaded
@@ -116,8 +110,8 @@ mutable struct RICHSimData{B, GT} <: G4JLSimulationData
     nOptPhotons::Int                               ## number of photons offloaded
     offloadTime::Float64                           ## time spent in the propagator (and the copies)
 end
-RICHSimData(backend, tracer, gputracer; mode=:gpu, batchSize=100) =
-    RICHSimData(mode, batchSize, backend, tracer, gputracer, CxxPtr{G4ParticleDefinition}(C_NULL),
+RICHSimData(backend; mode=:gpu, batchSize=100) =
+    RICHSimData(mode, batchSize, backend, nothing, nothing, CxxPtr{G4ParticleDefinition}(C_NULL),
                 OpticalPhoton[], Int[], Track[], Photon[], OpticalPhoton[], 0, 0, 0.)
 
 function reflectionPoint(E, D, C, R)
@@ -173,6 +167,20 @@ end
 
 radiatorOf(det, zvertex) = zvertex < det.aerogelZ + det.aerogelThickness + 1mm ? :aerogel : :gas
 
+function cpupropagate(tracer::OpticalTracer, photons::Vector{OpticalPhoton})
+    detected = Tuple{Int, Point3{Float64}}[]
+    for (i, p) in enumerate(photons)
+        pos = propagate(tracer, p)
+        isnothing(pos) || rand() < quantumEfficiency(p.energy) && push!(detected, (i, Point3{Float64}(pos)))
+    end
+    return detected
+end
+function gpupropagate(backend, tracer::OpticalTracer{T}, photons::Vector{OpticalPhoton}) where T
+    hits = offload(backend, tracer, [PhotonState{T}(p) for p in photons])
+    return [(i, Point3{Float64}(h.position...)) for (i, h) in enumerate(hits)
+            if h.detected && rand() < quantumEfficiency(photons[i].energy)]
+end
+
 function flush!(data::RICHSimData, det::RICHDetector)
     isempty(data.pending) && return
     if data.mode == :collect
@@ -180,17 +188,8 @@ function flush!(data::RICHSimData, det::RICHDetector)
     else
         detected = Tuple{Int, Point3{Float64}}[]
         data.offloadTime += @elapsed begin
-            if data.mode == :gpu
-                gpuphotons = [toGPU(floattype(data.gputracer), p) for p in data.pending]
-                for (i, h) in enumerate(offload(data.backend, data.gputracer, gpuphotons))
-                    h.detected && push!(detected, (i, Point3{Float64}(h.position)))
-                end
-            else
-                for (i, p) in enumerate(data.pending)
-                    pos = propagate(data.tracer, p)
-                    isnothing(pos) || rand() < quantumEfficiency(p.energy) && push!(detected, (i, Point3{Float64}(pos)))
-                end
-            end
+            detected = data.mode == :gpu ? gpupropagate(data.backend, data.gputracer, data.pending) :
+                                           cpupropagate(data.tracer, data.pending)
         end
         data.nOffloads += 1
         data.nOptPhotons += length(data.pending)
@@ -240,7 +239,7 @@ function endrun(run::G4Run, app::G4JLApplication)::Nothing
 end
 
 app = G4JLApplication(; detector = rich,                              ## detector with parameters
-                        simdata = RICHSimData(backend, tracer, gputracer),  ## simulation data structure
+                        simdata = RICHSimData(backend),               ## simulation data structure
                         generator = generator,                        ## primary particle generator
                         nthreads = 0,                                 ## # of threads (0 = no MT)
                         physics_type = RICHPhysics,                   ## what physics list to instantiate
@@ -254,6 +253,11 @@ configure(app)
 initialize(app)
 
 data = getSIMdata(app)
+gdml = exportGDML()
+data.tracer = RICHTracer(rich, gdml)
+data.gputracer = todevice(backend, RICHTracer(rich, gdml; T))
+data.tracer.model
+
 for mode in (:cpu, :gpu)
     data.mode = mode
     beamOn(app, 10)
@@ -301,8 +305,8 @@ data.mode = :collect
 beamOn(app, 3000)
 sample = copy(data.sample)
 sizes = [10^k for k in 2:6 if 10^k <= length(sample)]
-backends = [("CPU propagator", nothing, Float64), ("KernelAbstractions CPU()", CPU(), Float64)]
-backend isa CPU || push!(backends, ("KernelAbstractions $backend", backend, T))
+backends = [("CPU propagator, 1 thread", nothing, Float64), ("CPU propagator, $(Threads.nthreads()) threads", CPU(), Float64)]
+backend isa CPU || push!(backends, ("GPU kernel, $backend", backend, T))
 
 function timeit(f; repeat=3)
     f()                                            ## compilation and warm-up
@@ -317,9 +321,9 @@ for (label, bk, FT) in backends
     for n in sizes
         photons = sample[1:n]
         if isnothing(bk)
-            push!(times, timeit(() -> foreach(p -> propagate(tracer, p), photons)))
+            push!(times, timeit(() -> foreach(p -> propagate(data.tracer, p), photons)))
         else
-            gp, gt = [toGPU(FT, p) for p in photons], GPUTracer{FT}(tracer)
+            gp, gt = [PhotonState{FT}(p) for p in photons], bk isa CPU ? data.tracer : data.gputracer
             push!(times, timeit(() -> offload(bk, gt, gp)))
         end
     end

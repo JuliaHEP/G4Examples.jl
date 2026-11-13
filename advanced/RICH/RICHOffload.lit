@@ -8,13 +8,23 @@
 # optical photons in projects like Opticks or Celeritas.
 #
 # In this example the external propagator is a simple ray tracer written in Julia
-# ([RICHTracer.jl](@ref)). It knows the geometry of this detector and implements the same optical
-# physics as Geant4 (absorption, Rayleigh scattering, Fresnel refraction and reflection, and the
-# mirror reflectivity). It does not call Geant4, and the photons are independent of each other,
-# so it could run on several threads or on a GPU.
+# ([RICHTracer.jl](@ref)). It implements the same optical physics as Geant4 (absorption, Rayleigh
+# scattering, Fresnel refraction and reflection, and the mirror reflectivity), and gets the geometry
+# from [Geom4hep.jl](https://github.com/peremato/Geom4hep), a geometry package written in Julia:
+# Geant4 exports its geometry to a GDML file, which Geom4hep reads and uses to navigate the photons
+# (in which volume is a point, the distance to the next boundary, the normal of a surface). The
+# propagator does not call Geant4, and the photons are independent of each other, so it could run on
+# several threads or on a GPU.
+#
+#md # !!! note "Geom4hep"
+#md #     Geom4hep is not yet a registered package. Add it to the environment with
+#md #     `julia --project=. -e 'using Pkg; Pkg.add(url="https://github.com/peremato/Geom4hep.git")'`.
+#nb # Geom4hep is not yet a registered package. Add it to the environment with
+#nb # `julia --project=. -e 'using Pkg; Pkg.add(url="https://github.com/peremato/Geom4hep.git")'`.
 #
 # The example shows:
 # - collecting the optical photons in the **stacking action**, and killing them with `fKill`
+# - exporting the Geant4 geometry to GDML and navigating it with Geom4hep outside Geant4
 # - processing the collection of photons at the end of the event with code outside Geant4,
 #   which returns the hits on the photodetectors
 # - comparing the hits and the reconstructed Cherenkov angles with the full Geant4 simulation
@@ -99,10 +109,12 @@ generator = RICHGunGenerator()
 # structure with the state of a photon at its creation (position, direction, polarization, energy,
 # time, and whether it was produced by the primary track), and the function
 # `propagate(tracer, photon)`, which returns the position of the photon on a photodetector, or
-# `nothing` if the photon is lost. The `RICHTracer` structure holds the constants of the geometry,
-# computed from the parameters of the detector.
+# `nothing` if the photon is lost. The tracer (`OpticalTracer`) holds the Geom4hep geometry model,
+# the tables of optical properties of the materials (from `richOptics` in [RICHDetector.jl](@ref),
+# the same used to build the Geant4 material properties tables), and the volumes with special
+# surfaces: the two mirrors and the photodetectors. It is created once the Geant4 geometry exists,
+# after the initialization of the application.
 include(joinpath(@__DIR__, "RICHTracer.jl"))
-tracer = RICHTracer(rich)
 
 # ## Define the Simulation Data
 # The `Hit`, `Photon` and `Track` structures are the same as in the RICH example. The simulation data
@@ -131,7 +143,7 @@ end
 mutable struct RICHSimData <: G4JLSimulationData
     ##---Configuration------------------------------------------------------------------------------
     offload::Bool                                  ## offload the optical photons (or track them in Geant4)
-    tracer::RICHTracer                             ## the external propagator
+    tracer::Union{Nothing, OpticalTracer}          ## the external propagator
     opticalphoton::CxxPtr{G4ParticleDefinition}
     ##---Event data---------------------------------------------------------------------------------
     optphotons::Vector{OpticalPhoton}              ## photons collected by the stacking action
@@ -142,8 +154,8 @@ mutable struct RICHSimData <: G4JLSimulationData
     eventHits::Vector{Vector{Hit}}                 ## hits of the first events, for the displays
     nOptPhotons::Int                               ## number of photons offloaded
     offloadTime::Float64                           ## time spent in the propagator
-    RICHSimData(tracer; offload=true) = new(offload, tracer, CxxPtr{G4ParticleDefinition}(C_NULL),
-                                            OpticalPhoton[], Hit[], Track[], Photon[], [], 0, 0.)
+    RICHSimData(; offload=true) = new(offload, nothing, CxxPtr{G4ParticleDefinition}(C_NULL),
+                                      OpticalPhoton[], Hit[], Track[], Photon[], [], 0, 0.)
 end
 
 # ## Reconstruction of the Cherenkov angle
@@ -260,7 +272,7 @@ end
 
 # The function that processes the photons of an event outside Geant4. It only uses the collected
 # photons and the tracer, and fills a vector of hits.
-function offload!(hits::Vector{Hit}, photons::Vector{OpticalPhoton}, tracer::RICHTracer, det::RICHDetector)
+function offload!(hits::Vector{Hit}, photons::Vector{OpticalPhoton}, tracer::OpticalTracer, det::RICHDetector)
     for photon in photons
         p = propagate(tracer, photon)
         isnothing(p) && continue
@@ -289,7 +301,7 @@ end
 
 # ## Create the Application
 app = G4JLApplication(; detector = rich,                              ## detector with parameters
-                        simdata = RICHSimData(tracer),                ## simulation data structure
+                        simdata = RICHSimData(),                      ## simulation data structure
                         generator = generator,                        ## primary particle generator
                         nthreads = 0,                                 ## # of threads (0 = no MT)
                         physics_type = RICHPhysics,                   ## what physics list to instantiate
@@ -304,11 +316,17 @@ app = G4JLApplication(; detector = rich,                              ## detecto
 configure(app)
 initialize(app)
 
+# ## Build the tracer from the Geant4 geometry
+# The geometry is written to a GDML file with the Geant4 GDML writer (`exportGDML`), read by Geom4hep
+# and converted to a flat geometry model.
+data = getSIMdata(app)
+data.tracer = RICHTracer(rich, exportGDML())
+data.tracer.model
+
 # ## One event in detail
 # We simulate one event with a 10 GeV/c pion in offload mode and look at the collected photons. We draw
 # the geometry, the creation points of the photons, and the hits produced by the tracer
 # (aerogel photons in orange, gas photons in blue).
-data = getSIMdata(app)
 generator.data.particles, generator.data.pmin, generator.data.pmax = ["pi+"], 10GeV, 10GeV
 beamOn(app, 1)
 optphotons, hits = copy(data.optphotons), copy(data.hits)

@@ -2,10 +2,18 @@
 #
 # This example continues the [RICH Detector with Offloaded Optical Photons](@ref) example. The optical
 # photons are again collected by the stacking action and killed, but they are now propagated on a
-# GPU. The propagator in [RICHTracerGPU.jl](@ref) is a port of the CPU ray tracer to a
+# GPU. [RICHTracerGPU.jl](@ref) runs the propagator of [RICHTracer.jl](@ref) in a
 # [KernelAbstractions.jl](https://github.com/JuliaGPU/KernelAbstractions.jl) kernel, with one GPU
-# thread per photon. The same kernel runs on Apple GPUs (Metal.jl), NVIDIA GPUs (CUDA.jl), AMD GPUs
-# (AMDGPU.jl), or on the CPU with Julia threads.
+# thread per photon: the same code, including the navigation in the geometry with
+# [Geom4hep.jl](https://github.com/peremato/Geom4hep), runs on the CPU and on the GPU. The kernel runs
+# on Apple GPUs (Metal.jl), NVIDIA GPUs (CUDA.jl) and AMD GPUs (AMDGPU.jl); on the CPU the photons are
+# propagated with Julia threads.
+#
+#md # !!! note "Geom4hep"
+#md #     Geom4hep is not yet a registered package. Add it to the environment with
+#md #     `julia --project=. -e 'using Pkg; Pkg.add(url="https://github.com/peremato/Geom4hep.git")'`.
+#nb # Geom4hep is not yet a registered package. Add it to the environment with
+#nb # `julia --project=. -e 'using Pkg; Pkg.add(url="https://github.com/peremato/Geom4hep.git")'`.
 #
 # A GPU needs many photons at once to be efficient: launching a kernel and copying the data costs
 # some tens of microseconds, about the time the CPU needs to propagate the few hundred photons of
@@ -117,24 +125,17 @@ end
 generator = RICHGunGenerator()
 
 # ## The CPU and GPU propagators
-# [RICHTracer.jl](@ref) defines the `OpticalPhoton` structure, the `RICHTracer` geometry constants
-# and the CPU propagator `propagate(tracer, photon)`. [RICHTracerGPU.jl](@ref) defines the module
-# `RICHGPU` with:
-# - `GPUPhoton{T}`: the photon state in precision `T`, with its energy-dependent properties (the
-#   refractive index of the gas, the Rayleigh scattering length and the quantum efficiency), which
-#   we evaluate on the host
-# - `GPUTracer{T}`: the geometry constants in precision `T`, converted from a `RICHTracer`
-# - `offload(backend, tracer, photons)`: copies the photons to the device, runs the kernel and
-#   returns a `GPUHit{T}` (detected or not, and the position) for each photon
+# [RICHTracer.jl](@ref) defines the `OpticalPhoton` structure, the tracer (`OpticalTracer{T}`, built
+# with `RICHTracer(det, gdml; T)` from the geometry exported by Geant4 to GDML) and the CPU propagator
+# `propagate(tracer, photon)`. [RICHTracerGPU.jl](@ref) defines the module `RICHGPU` with:
+# - `todevice(backend, tracer)`: copies the tracer (the Geom4hep geometry model and the tables of
+#   optical properties) to the device
+# - `offload(backend, tracer, photons)`: copies the photons (`PhotonState{T}`) to the device, runs
+#   the kernel and returns a `GPUHit{T}` (detected or not, and the position) for each photon
+# The tracers are created after the initialization of the application, when the Geant4 geometry exists.
 include(joinpath(@__DIR__, "RICHTracer.jl"))
 include(joinpath(@__DIR__, "RICHTracerGPU.jl"))
 using .RICHGPU
-tracer = RICHTracer(rich)
-gputracer = GPUTracer{T}(tracer)
-
-toGPU(::Type{T}, p::OpticalPhoton) where T = GPUPhoton{T}(p.position, p.direction, p.polarization, c4f10RIndex(p.energy),
-                                                          aerogelRayleigh(p.energy), quantumEfficiency(p.energy))
-floattype(::GPUTracer{T}) where T = T
 
 # ## Define the Simulation Data
 # The `Hit`, `Photon` and `Track` structures are the same as in the RICH example. The photons
@@ -160,13 +161,13 @@ struct Track
     direction::Vec3{Float64}
 end
 
-mutable struct RICHSimData{B, GT} <: G4JLSimulationData
+mutable struct RICHSimData{B} <: G4JLSimulationData
     ##---Configuration------------------------------------------------------------------------------
     mode::Symbol                                   ## :cpu, :gpu or :collect
     batchSize::Int                                 ## number of events per offload
     backend::B                                     ## KernelAbstractions backend
-    tracer::RICHTracer                             ## CPU propagator
-    gputracer::GT                                  ## GPU propagator
+    tracer::Any                                    ## CPU propagator (OpticalTracer{Float64})
+    gputracer::Any                                 ## GPU propagator (OpticalTracer{T} on the device)
     opticalphoton::CxxPtr{G4ParticleDefinition}
     ##---Batch data---------------------------------------------------------------------------------
     pending::Vector{OpticalPhoton}                 ## photons waiting to be offloaded
@@ -179,8 +180,8 @@ mutable struct RICHSimData{B, GT} <: G4JLSimulationData
     nOptPhotons::Int                               ## number of photons offloaded
     offloadTime::Float64                           ## time spent in the propagator (and the copies)
 end
-RICHSimData(backend, tracer, gputracer; mode=:gpu, batchSize=100) =
-    RICHSimData(mode, batchSize, backend, tracer, gputracer, CxxPtr{G4ParticleDefinition}(C_NULL),
+RICHSimData(backend; mode=:gpu, batchSize=100) =
+    RICHSimData(mode, batchSize, backend, nothing, nothing, CxxPtr{G4ParticleDefinition}(C_NULL),
                 OpticalPhoton[], Int[], Track[], Photon[], OpticalPhoton[], 0, 0, 0.)
 
 # ## Reconstruction of the Cherenkov angle
@@ -241,7 +242,23 @@ radiatorOf(det, zvertex) = zvertex < det.aerogelZ + det.aerogelThickness + 1mm ?
 # ## Offloading a batch
 # `flush!` propagates all the pending photons, with the CPU or the GPU propagator, and reconstructs
 # the Cherenkov angle of the detected photons with the track of their event. With the GPU, the
-# photons are first converted to `GPUPhoton{T}`, and the quantum efficiency is applied in the kernel.
+# photons are first converted to `PhotonState{T}`. In both cases the quantum efficiency is applied
+# to the photons that reach a photodetector. The functions `cpupropagate` and `gpupropagate` return
+# the index and the position of the detected photons.
+function cpupropagate(tracer::OpticalTracer, photons::Vector{OpticalPhoton})
+    detected = Tuple{Int, Point3{Float64}}[]
+    for (i, p) in enumerate(photons)
+        pos = propagate(tracer, p)
+        isnothing(pos) || rand() < quantumEfficiency(p.energy) && push!(detected, (i, Point3{Float64}(pos)))
+    end
+    return detected
+end
+function gpupropagate(backend, tracer::OpticalTracer{T}, photons::Vector{OpticalPhoton}) where T
+    hits = offload(backend, tracer, [PhotonState{T}(p) for p in photons])
+    return [(i, Point3{Float64}(h.position...)) for (i, h) in enumerate(hits)
+            if h.detected && rand() < quantumEfficiency(photons[i].energy)]
+end
+
 function flush!(data::RICHSimData, det::RICHDetector)
     isempty(data.pending) && return
     if data.mode == :collect
@@ -249,17 +266,8 @@ function flush!(data::RICHSimData, det::RICHDetector)
     else
         detected = Tuple{Int, Point3{Float64}}[]
         data.offloadTime += @elapsed begin
-            if data.mode == :gpu
-                gpuphotons = [toGPU(floattype(data.gputracer), p) for p in data.pending]
-                for (i, h) in enumerate(offload(data.backend, data.gputracer, gpuphotons))
-                    h.detected && push!(detected, (i, Point3{Float64}(h.position)))
-                end
-            else
-                for (i, p) in enumerate(data.pending)
-                    pos = propagate(data.tracer, p)
-                    isnothing(pos) || rand() < quantumEfficiency(p.energy) && push!(detected, (i, Point3{Float64}(pos)))
-                end
-            end
+            detected = data.mode == :gpu ? gpupropagate(data.backend, data.gputracer, data.pending) :
+                                           cpupropagate(data.tracer, data.pending)
         end
         data.nOffloads += 1
         data.nOptPhotons += length(data.pending)
@@ -314,7 +322,7 @@ end
 
 # ## Create the Application
 app = G4JLApplication(; detector = rich,                              ## detector with parameters
-                        simdata = RICHSimData(backend, tracer, gputracer),  ## simulation data structure
+                        simdata = RICHSimData(backend),               ## simulation data structure
                         generator = generator,                        ## primary particle generator
                         nthreads = 0,                                 ## # of threads (0 = no MT)
                         physics_type = RICHPhysics,                   ## what physics list to instantiate
@@ -328,11 +336,20 @@ app = G4JLApplication(; detector = rich,                              ## detecto
 configure(app)
 initialize(app)
 
+# ## Build the tracers from the Geant4 geometry
+# The geometry is exported to GDML once, and read twice by Geom4hep: in double precision for the CPU
+# propagator, and in the precision `T` of the backend for the GPU propagator, which is then copied
+# to the device.
+data = getSIMdata(app)
+gdml = exportGDML()
+data.tracer = RICHTracer(rich, gdml)
+data.gputracer = todevice(backend, RICHTracer(rich, gdml; T))
+data.tracer.model
+
 # ## CPU versus GPU propagation
 # We simulate 2000 events with pions, kaons and protons, offloading the photons in batches of 100
 # events, first to the CPU propagator and then to the GPU. A first short run compiles the code
 # (including the GPU kernel) so that it is not included in the timing.
-data = getSIMdata(app)
 for mode in (:cpu, :gpu)
     data.mode = mode
     beamOn(app, 10)
@@ -384,15 +401,15 @@ end
 
 # ## Throughput as a function of the batch size
 # We collect the photons of 3000 events (more than a million photons) and propagate samples of
-# increasing size with the CPU propagator (one thread), the kernel on the CPU backend (with all the
-# Julia threads), and the kernel on the chosen backend. The time includes the copies to and from
+# increasing size with the CPU propagator (one thread), the same propagator on all the Julia threads
+# (`offload` with the `CPU()` backend), and the kernel on the chosen GPU backend. The time includes the copies to and from
 # the device, but not the conversion to `GPUPhoton`.
 data.mode = :collect
 beamOn(app, 3000)
 sample = copy(data.sample)
 sizes = [10^k for k in 2:6 if 10^k <= length(sample)]
-backends = [("CPU propagator", nothing, Float64), ("KernelAbstractions CPU()", CPU(), Float64)]
-backend isa CPU || push!(backends, ("KernelAbstractions $backend", backend, T))
+backends = [("CPU propagator, 1 thread", nothing, Float64), ("CPU propagator, $(Threads.nthreads()) threads", CPU(), Float64)]
+backend isa CPU || push!(backends, ("GPU kernel, $backend", backend, T))
 
 function timeit(f; repeat=3)
     f()                                            ## compilation and warm-up
@@ -407,9 +424,9 @@ for (label, bk, FT) in backends
     for n in sizes
         photons = sample[1:n]
         if isnothing(bk)
-            push!(times, timeit(() -> foreach(p -> propagate(tracer, p), photons)))
+            push!(times, timeit(() -> foreach(p -> propagate(data.tracer, p), photons)))
         else
-            gp, gt = [toGPU(FT, p) for p in photons], GPUTracer{FT}(tracer)
+            gp, gt = [PhotonState{FT}(p) for p in photons], bk isa CPU ? data.tracer : data.gputracer
             push!(times, timeit(() -> offload(bk, gt, gp)))
         end
     end

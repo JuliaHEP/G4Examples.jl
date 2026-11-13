@@ -54,7 +54,6 @@ end
 generator = RICHGunGenerator()
 
 include(joinpath(@__DIR__, "RICHTracer.jl"))
-tracer = RICHTracer(rich)
 
 struct Hit
     position::Point3{Float64}
@@ -78,7 +77,7 @@ end
 mutable struct RICHSimData <: G4JLSimulationData
     ##---Configuration------------------------------------------------------------------------------
     offload::Bool                                  ## offload the optical photons (or track them in Geant4)
-    tracer::RICHTracer                             ## the external propagator
+    tracer::Union{Nothing, OpticalTracer}          ## the external propagator
     opticalphoton::CxxPtr{G4ParticleDefinition}
     ##---Event data---------------------------------------------------------------------------------
     optphotons::Vector{OpticalPhoton}              ## photons collected by the stacking action
@@ -89,8 +88,8 @@ mutable struct RICHSimData <: G4JLSimulationData
     eventHits::Vector{Vector{Hit}}                 ## hits of the first events, for the displays
     nOptPhotons::Int                               ## number of photons offloaded
     offloadTime::Float64                           ## time spent in the propagator
-    RICHSimData(tracer; offload=true) = new(offload, tracer, CxxPtr{G4ParticleDefinition}(C_NULL),
-                                            OpticalPhoton[], Hit[], Track[], Photon[], [], 0, 0.)
+    RICHSimData(; offload=true) = new(offload, nothing, CxxPtr{G4ParticleDefinition}(C_NULL),
+                                      OpticalPhoton[], Hit[], Track[], Photon[], [], 0, 0.)
 end
 
 function reflectionPoint(E, D, C, R)
@@ -191,7 +190,7 @@ function stepaction(step::G4Step, app::G4JLApplication)::Nothing
     return
 end
 
-function offload!(hits::Vector{Hit}, photons::Vector{OpticalPhoton}, tracer::RICHTracer, det::RICHDetector)
+function offload!(hits::Vector{Hit}, photons::Vector{OpticalPhoton}, tracer::OpticalTracer, det::RICHDetector)
     for photon in photons
         p = propagate(tracer, photon)
         isnothing(p) && continue
@@ -219,7 +218,7 @@ function endevent(evt::G4Event, app::G4JLApplication)::Nothing
 end
 
 app = G4JLApplication(; detector = rich,                              ## detector with parameters
-                        simdata = RICHSimData(tracer),                ## simulation data structure
+                        simdata = RICHSimData(),                      ## simulation data structure
                         generator = generator,                        ## primary particle generator
                         nthreads = 0,                                 ## # of threads (0 = no MT)
                         physics_type = RICHPhysics,                   ## what physics list to instantiate
@@ -234,6 +233,9 @@ configure(app)
 initialize(app)
 
 data = getSIMdata(app)
+data.tracer = RICHTracer(rich, exportGDML())
+data.tracer.model
+
 generator.data.particles, generator.data.pmin, generator.data.pmax = ["pi+"], 10GeV, 10GeV
 beamOn(app, 1)
 optphotons, hits = copy(data.optphotons), copy(data.hits)
